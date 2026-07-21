@@ -107,7 +107,7 @@ const Hero = () => (
         SIMPLE. TRANSPARENT. SECURE.
       </p>
       <p className="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">
-        LYNCREST <span className="text-[hsl(var(--gold))]">FARGO</span>
+        LYNCREST <span className="text-[hsl(var(--gold))]">DIGITAL BANK</span>
       </p>
       <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight max-w-4xl mx-auto mb-10">
         Your Banking and Financial Solution
