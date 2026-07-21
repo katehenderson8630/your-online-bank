@@ -48,7 +48,7 @@ export default function AppLayout() {
             <img src={logoImg} alt="Lyncrest Digital Bank logo" className="w-8 h-8 object-contain shrink-0" />
             <div className="leading-tight hidden sm:block">
               <div className="font-extrabold text-sm tracking-tight text-primary">Lyncrest</div>
-              <div className="text-[10px] font-bold text-[hsl(var(--gold))] -mt-0.5">Fargo</div>
+              <div className="text-[10px] font-bold text-[hsl(var(--gold))] -mt-0.5">Bank</div>
             </div>
           </div>
 
