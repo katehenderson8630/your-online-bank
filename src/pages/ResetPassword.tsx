@@ -46,9 +46,9 @@ export default function ResetPassword() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-6">
       <Card className="w-full max-w-md p-6 md:p-8">
         <Link to="/" className="flex items-center gap-2.5 mb-6 justify-center">
-          <img src={logoImg} alt="Green Wells Fargo logo" width={44} height={44} className="w-11 h-11 object-contain" />
+          <img src={logoImg} alt="Lyncrest Digital Bank logo" width={44} height={44} className="w-11 h-11 object-contain" />
           <div className="leading-tight">
-            <div className="font-extrabold text-lg tracking-tight text-primary">Green Wells</div>
+            <div className="font-extrabold text-lg tracking-tight text-primary">Lyncrest</div>
             <div className="text-xs font-bold text-[hsl(var(--gold))] -mt-0.5">Fargo</div>
           </div>
         </Link>

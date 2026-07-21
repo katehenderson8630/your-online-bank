@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
         return json({ ok: true });
       }
 
-      // Internal transfer between two Green Wells Fargo users
+      // Internal transfer between two Lyncrest Digital Bank users
       if (!tr.is_external && tr.to_account_id) {
         const { error: rpcErr } = await admin.rpc("execute_internal_transfer", {
           _from: tr.from_account_id, _to: tr.to_account_id, _amount: Number(tr.amount), _memo: tr.memo ?? null,

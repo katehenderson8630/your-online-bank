@@ -217,7 +217,7 @@ export default function SupportChat() {
             {messages.length === 0 && (
               <div className="text-center text-muted-foreground text-sm mt-8 space-y-2">
                 <Bot className="w-10 h-10 mx-auto text-primary/50" />
-                <p>Hello! I'm your Green Wells Fargo assistant.</p>
+                <p>Hello! I'm your Lyncrest Digital Bank assistant.</p>
                 <p>How can I help you today?</p>
               </div>
             )}

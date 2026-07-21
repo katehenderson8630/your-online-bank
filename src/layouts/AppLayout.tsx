@@ -45,9 +45,9 @@ export default function AppLayout() {
       <header className="sticky top-0 z-30 border-b bg-card">
         <div className="container mx-auto flex items-center justify-between gap-2 px-3 md:px-6 h-14">
           <div className="flex items-center gap-2 min-w-0">
-            <img src={logoImg} alt="Green Wells Fargo logo" className="w-8 h-8 object-contain shrink-0" />
+            <img src={logoImg} alt="Lyncrest Digital Bank logo" className="w-8 h-8 object-contain shrink-0" />
             <div className="leading-tight hidden sm:block">
-              <div className="font-extrabold text-sm tracking-tight text-primary">Green Wells</div>
+              <div className="font-extrabold text-sm tracking-tight text-primary">Lyncrest</div>
               <div className="text-[10px] font-bold text-[hsl(var(--gold))] -mt-0.5">Fargo</div>
             </div>
           </div>

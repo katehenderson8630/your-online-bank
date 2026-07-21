@@ -84,7 +84,7 @@ export default function Cards() {
         <Card className="p-4 border-warning bg-warning/5">
           <div className="font-medium">Debit card required to unlock transactions</div>
           <p className="text-sm text-muted-foreground mt-1">
-            To send transfers, pay bills or make withdrawals, you need an active Green Wells Fargo debit card. Please <b>contact our live support agent</b> for the issuance fee amount and payment details. Once you’ve paid, submit a card request below and an admin will issue your card.
+            To send transfers, pay bills or make withdrawals, you need an active Lyncrest Digital Bank debit card. Please <b>contact our live support agent</b> for the issuance fee amount and payment details. Once you’ve paid, submit a card request below and an admin will issue your card.
           </p>
           <Button size="sm" className="mt-3" onClick={() => window.dispatchEvent(new CustomEvent("open-support-chat"))}>
             Contact live support

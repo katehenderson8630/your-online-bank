@@ -183,9 +183,9 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-6">
       <Card className="w-full max-w-lg p-6 md:p-8">
         <Link to="/" className="flex items-center gap-2.5 mb-6 justify-center">
-          <img src={logoImg} alt="Green Wells Fargo logo" width={44} height={44} className="w-11 h-11 object-contain" />
+          <img src={logoImg} alt="Lyncrest Digital Bank logo" width={44} height={44} className="w-11 h-11 object-contain" />
           <div className="leading-tight">
-            <div className="font-extrabold text-lg tracking-tight text-primary">Green Wells</div>
+            <div className="font-extrabold text-lg tracking-tight text-primary">Lyncrest</div>
             <div className="text-xs font-bold text-[hsl(var(--gold))] -mt-0.5">Fargo</div>
           </div>
         </Link>
@@ -241,7 +241,7 @@ export default function Auth() {
         {mode === "forgot" && (
           <form onSubmit={handleForgot} className="space-y-4">
             <h2 className="font-semibold">Reset your password</h2>
-            <p className="text-sm text-muted-foreground">Enter the email associated with your Green Wells Fargo account. We'll send a secure reset link.</p>
+            <p className="text-sm text-muted-foreground">Enter the email associated with your Lyncrest Digital Bank account. We'll send a secure reset link.</p>
             <div><Label>Email</Label><Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
             <Button type="submit" className="w-full" disabled={loading}>{loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Send reset email</Button>
             <button type="button" onClick={() => setMode("signin")} className="text-xs text-primary hover:underline w-full text-center">Back to sign in</button>

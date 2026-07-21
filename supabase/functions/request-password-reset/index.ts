@@ -6,14 +6,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const CANONICAL_APP_ORIGIN = "https://greenwellsfargo.site";
+const CANONICAL_APP_ORIGIN = "https://Lyncrestdigital.online";
 const RESET_PATH = "/reset-password";
 
 function resetRedirectUrl(raw?: string) {
   try {
     const parsed = new URL(raw ?? "", CANONICAL_APP_ORIGIN);
     parsed.protocol = "https:";
-    parsed.hostname = "greenwellsfargo.site";
+    parsed.hostname = "Lyncrestdigital.online";
     parsed.pathname = RESET_PATH;
     parsed.search = "";
     parsed.hash = "";
