@@ -22,9 +22,9 @@ import customer3 from "@/assets/customer-3.jpg";
 /* ---------- Logo (unchanged asset) ---------- */
 const Logo = ({ light = false }: { light?: boolean }) => (
   <div className="flex items-center gap-2.5">
-    <img src={logoImg} alt="Green Wells Fargo logo" width={44} height={44} className="w-11 h-11 object-contain" />
+    <img src={logoImg} alt="Lyncrest Digital Bank logo" width={44} height={44} className="w-11 h-11 object-contain" />
     <div className="leading-tight">
-      <div className={`font-extrabold text-lg tracking-tight ${light ? "text-white" : "text-primary"}`}>Green Wells</div>
+      <div className={`font-extrabold text-lg tracking-tight ${light ? "text-white" : "text-primary"}`}>Lyncrest</div>
       <div className="text-xs font-bold text-[hsl(var(--gold))] -mt-0.5">Fargo</div>
     </div>
   </div>
@@ -95,7 +95,7 @@ const Hero = () => (
   <section id="home" className="relative overflow-hidden">
     <img
       src={heroPeople}
-      alt="Smiling Green Wells Fargo customers giving thumbs up"
+      alt="Smiling Lyncrest Digital Bank customers giving thumbs up"
       width={1920}
       height={1080}
       className="absolute inset-0 w-full h-full object-cover"
@@ -107,7 +107,7 @@ const Hero = () => (
         SIMPLE. TRANSPARENT. SECURE.
       </p>
       <p className="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">
-        GREEN WELLS <span className="text-[hsl(var(--gold))]">FARGO</span>
+        LYNCREST <span className="text-[hsl(var(--gold))]">FARGO</span>
       </p>
       <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight max-w-4xl mx-auto mb-10">
         Your Banking and Financial Solution
@@ -149,7 +149,7 @@ const About = () => (
       <div className="relative">
         <img
           src={aboutMeeting}
-          alt="Green Wells Fargo advisors meeting with a client"
+          alt="Lyncrest Digital Bank advisors meeting with a client"
           width={1600}
           height={900}
           loading="lazy"
@@ -167,7 +167,7 @@ const About = () => (
           Small Business Loans For a Daily Expenses
         </h2>
         <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-4">
-          At The Green Wells Fargo, we believe that your bank should support your dreams and aspirations.
+          At Lyncrest Digital Bank, we believe that your bank should support your dreams and aspirations.
           That's why we have developed convenient mortgage solutions to help make your dream of owning
           your own business a reality.
         </p>
@@ -233,7 +233,7 @@ const WhyUs = () => {
       <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-12 items-center">
         <img
           src={branchImg}
-          alt="Green Wells Fargo branch interior"
+          alt="Lyncrest Digital Bank branch interior"
           width={1600}
           height={1067}
           loading="lazy"
@@ -308,7 +308,7 @@ const CardStrip = () => (
           <Button className="rounded-full bg-primary hover:bg-primary/90 font-semibold px-8 h-12">Get Your Card</Button>
         </Link>
       </div>
-      <img src={cardImg} alt="Green Wells Fargo premium debit card" width={1600} height={900} loading="lazy"
+      <img src={cardImg} alt="Lyncrest Digital Bank premium debit card" width={1600} height={900} loading="lazy"
         className="w-full h-auto rounded-2xl shadow-[var(--shadow-card)]" />
     </div>
   </section>
@@ -317,7 +317,7 @@ const CardStrip = () => (
 /* ---------- Testimonials ---------- */
 const Testimonials = () => {
   const quotes = [
-    { name: "Sarah Mitchell", role: "Small Business Owner", img: customer1, quote: "Green Wells Fargo approved my business loan in 48 hours. Their team genuinely cares about helping local businesses succeed." },
+    { name: "Sarah Mitchell", role: "Small Business Owner", img: customer1, quote: "Lyncrest Digital Bank approved my business loan in 48 hours. Their team genuinely cares about helping local businesses succeed." },
     { name: "James Carter", role: "Software Engineer", img: customer2, quote: "The mobile app is incredible. I haven't stepped foot in a branch in years and everything just works." },
     { name: "Aisha Patel", role: "First-time Homebuyer", img: customer3, quote: "From mortgage pre-approval to closing, the process was smooth and transparent. They explained every single step." },
   ];
@@ -354,11 +354,11 @@ const Testimonials = () => {
 const FAQ = () => {
   const faqs = [
     { q: "How do I open an account?", a: "Click 'Open Account', complete the secure signup form, and upload a selfie for identity verification. Most accounts are approved within 24 hours." },
-    { q: "Is my money FDIC insured?", a: "Yes. All deposits at Green Wells Fargo are insured up to $250,000 per depositor by the FDIC." },
+    { q: "Is my money FDIC insured?", a: "Yes. All deposits at Lyncrest Digital Bank are insured up to $250,000 per depositor by the FDIC." },
     { q: "Are there any monthly fees?", a: "No. Our checking and savings accounts have zero monthly maintenance fees and no minimum balance requirements." },
-    { q: "How fast are transfers?", a: "Internal transfers between Green Wells members are instant. External transfers via ACH typically settle within 1-2 business days." },
+    { q: "How fast are transfers?", a: "Internal transfers between Lyncrest members are instant. External transfers via ACH typically settle within 1-2 business days." },
     { q: "Can I get a loan as a small business owner?", a: "Yes. We offer small business loans starting at $5,000 with competitive rates and decisions in as little as 48 hours." },
-    { q: "How do I contact support?", a: "Our support team is available 24/7 by live chat and secure email at support@greenwellsfargo.site. Average response time is under 2 minutes." },
+    { q: "How do I contact support?", a: "Our support team is available 24/7 by live chat and secure email at support@Lyncrestdigital.online. Average response time is under 2 minutes." },
   ];
   return (
     <section className="py-16 md:py-24 bg-secondary">
@@ -385,7 +385,7 @@ const CTA = () => (
   <section className="py-16 md:py-20 relative overflow-hidden" style={{ backgroundImage: "var(--gradient-primary)" }}>
     <div className="container mx-auto px-4 text-center text-white">
       <h2 className="text-3xl md:text-5xl font-extrabold mb-4">Ready to bank smarter?</h2>
-      <p className="text-lg opacity-90 mb-8 max-w-xl mx-auto">Open your Green Wells Fargo account in minutes. No fees, no minimums, no hassle.</p>
+      <p className="text-lg opacity-90 mb-8 max-w-xl mx-auto">Open your Lyncrest Digital Bank account in minutes. No fees, no minimums, no hassle.</p>
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Link to="/auth?mode=signup"><Button className={pillPrimary}>Open Account <ChevronsRight className="ml-1 w-5 h-5" /></Button></Link>
         <Link to="/auth"><Button className={pillOutline}>Account Login <ChevronsRight className="ml-1 w-5 h-5" /></Button></Link>
@@ -409,7 +409,7 @@ const Footer = () => {
           <div className="lg:col-span-2">
             <Logo light />
             <p className="text-sm opacity-80 mt-4 leading-relaxed max-w-xs">
-              Green Wells Fargo. Trusted banking, transparent pricing, and 25+ years of helping families and businesses thrive.
+              Lyncrest Digital Bank. Trusted banking, transparent pricing, and 25+ years of helping families and businesses thrive.
             </p>
             <div className="flex gap-3 mt-5">
               {[Facebook, Twitter, Linkedin, Instagram].map((I, i) => (
@@ -430,10 +430,10 @@ const Footer = () => {
         </div>
         <div className="pt-6 flex flex-col md:flex-row gap-4 items-center justify-between text-sm opacity-80">
           <div className="flex flex-wrap items-center gap-4">
-            <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> support@greenwellsfargo.site</span>
+            <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> support@Lyncrestdigital.online</span>
           </div>
         </div>
-        <div className="text-xs opacity-60 text-center mt-6">© {new Date().getFullYear()} Green Wells Fargo. All rights reserved.</div>
+        <div className="text-xs opacity-60 text-center mt-6">© {new Date().getFullYear()} Lyncrest Digital Bank. All rights reserved.</div>
       </div>
     </footer>
   );

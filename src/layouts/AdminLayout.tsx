@@ -42,9 +42,9 @@ export default function AdminLayout() {
     <div className="min-h-screen flex">
       <aside className="w-64 border-r bg-card hidden md:flex flex-col">
         <div className="px-6 py-5 border-b flex items-center gap-2">
-          <img src={logoImg} alt="Green Wells Fargo logo" className="w-9 h-9 object-contain" />
+          <img src={logoImg} alt="Lyncrest Digital Bank logo" className="w-9 h-9 object-contain" />
           <div>
-            <div className="font-semibold">Green Wells Fargo</div>
+            <div className="font-semibold">Lyncrest Digital Bank</div>
             <div className="text-xs text-muted-foreground">Admin console</div>
           </div>
         </div>

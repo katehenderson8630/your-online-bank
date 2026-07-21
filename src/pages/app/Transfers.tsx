@@ -150,7 +150,7 @@ export default function Transfers() {
 
         <Tabs defaultValue="internal">
           <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="internal">To Green Wells Fargo user</TabsTrigger>
+            <TabsTrigger value="internal">To Lyncrest Digital Bank user</TabsTrigger>
             <TabsTrigger value="external">External bank</TabsTrigger>
           </TabsList>
           <TabsContent value="internal">
@@ -165,7 +165,7 @@ export default function Transfers() {
                 </div>
                 <div><Label>Memo</Label><Textarea value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={200} /></div>
                 <Button disabled={busy} className="w-full">Submit transfer</Button>
-                <p className="text-xs text-muted-foreground">All transfers are reviewed by our compliance team before settlement. Need help? Email <a className="underline" href="mailto:support@greenwellsfargo.site">support@greenwellsfargo.site</a>.</p>
+                <p className="text-xs text-muted-foreground">All transfers are reviewed by our compliance team before settlement. Need help? Email <a className="underline" href="mailto:support@Lyncrestdigital.online">support@Lyncrestdigital.online</a>.</p>
               </form>
             </Card>
           </TabsContent>
@@ -184,7 +184,7 @@ export default function Transfers() {
                 </div>
                 <div><Label>Memo</Label><Textarea value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={200} /></div>
                 <Button disabled={busy} className="w-full">Submit for review</Button>
-                <p className="text-xs text-muted-foreground">External transfers are reviewed by an admin before sending. Need help? Email <a className="underline" href="mailto:support@greenwellsfargo.site">support@greenwellsfargo.site</a>.</p>
+                <p className="text-xs text-muted-foreground">External transfers are reviewed by an admin before sending. Need help? Email <a className="underline" href="mailto:support@Lyncrestdigital.online">support@Lyncrestdigital.online</a>.</p>
               </form>
             </Card>
           </TabsContent>

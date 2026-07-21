@@ -6,8 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM = "Green Wells Fargo <noreply@greenwellsfargo.site>";
-const SUPPORT_EMAIL = "support@greenwellsfargo.site";
+const FROM = "Lyncrest Digital Bank <noreply@Lyncrestdigital.online>";
+const SUPPORT_EMAIL = "support@Lyncrestdigital.online";
 
 async function sha256(input: string) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
@@ -22,7 +22,7 @@ function emailHtml(code: string) {
   return `<!doctype html><html><body style="margin:0;background:#f5f7fb;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fb;padding:24px 0"><tr><td align="center">
 <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)">
-<tr><td style="background:#1a3d6e;color:#ffffff;padding:20px 28px;font-weight:700;font-size:18px">Green Wells Fargo</td></tr>
+<tr><td style="background:#1a3d6e;color:#ffffff;padding:20px 28px;font-weight:700;font-size:18px">Lyncrest Digital Bank</td></tr>
 <tr><td style="padding:28px 28px 8px;color:#0f172a;font-size:16px;font-weight:600">Your sign-in code</td></tr>
 <tr><td style="padding:8px 28px 24px;color:#334155;font-size:14px;line-height:1.55">
 Use the code below to finish signing in. It expires in 10 minutes.
@@ -30,7 +30,7 @@ Use the code below to finish signing in. It expires in 10 minutes.
 If you did not try to sign in, change your password immediately and contact <a href="mailto:${SUPPORT_EMAIL}" style="color:#1a3d6e">${SUPPORT_EMAIL}</a>.
 </td></tr>
 <tr><td style="padding:18px 28px;color:#64748b;font-size:12px;border-top:1px solid #e2e8f0">
-This is an automated message from Green Wells Fargo. Please do not reply.
+This is an automated message from Lyncrest Digital Bank. Please do not reply.
 </td></tr></table></td></tr></table></body></html>`;
 }
 

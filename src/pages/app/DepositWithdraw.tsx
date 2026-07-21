@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Wallet, Mail } from "lucide-react";
 
-const SUPPORT_EMAIL = "support@greenwellsfargo.site";
+const SUPPORT_EMAIL = "support@Lyncrestdigital.online";
 type Account = { id: string; account_number: string; account_type: string; balance: number };
 
 export default function Deposit() {

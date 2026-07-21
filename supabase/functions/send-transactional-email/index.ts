@@ -6,8 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM = "Green Wells Fargo <noreply@greenwellsfargo.site>";
-const SUPPORT_EMAIL = "support@greenwellsfargo.site";
+const FROM = "Lyncrest Digital Bank <noreply@Lyncrestdigital.online>";
+const SUPPORT_EMAIL = "support@Lyncrestdigital.online";
 
 type Body = {
   templateName: string;
@@ -48,9 +48,9 @@ function build(name: string, d: Record<string, unknown>): Tpl {
   switch (name) {
     case "welcome":
       return {
-        subject: "Welcome to Green Wells Fargo",
+        subject: "Welcome to Lyncrest Digital Bank",
         intro: `Hello ${who},`,
-        body: `Thank you for opening an account with Green Wells Fargo. Our compliance team is now reviewing your KYC documents. You will receive a follow-up email as soon as your account is activated.<br><br>For any question, please contact us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.`,
+        body: `Thank you for opening an account with Lyncrest Digital Bank. Our compliance team is now reviewing your KYC documents. You will receive a follow-up email as soon as your account is activated.<br><br>For any question, please contact us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.`,
       };
     case "kyc-submitted":
       return {
@@ -74,13 +74,13 @@ function build(name: string, d: Record<string, unknown>): Tpl {
       return {
         subject: "Card request received",
         intro: `Hello ${who},`,
-        body: `We have received your request for a Green Wells Fargo debit card. Once your issuance fee is confirmed by support, an admin will issue your card and you will receive a confirmation email.`,
+        body: `We have received your request for a Lyncrest Digital Bank debit card. Once your issuance fee is confirmed by support, an admin will issue your card and you will receive a confirmation email.`,
       };
     case "card-issued":
       return {
         subject: "Your debit card has been issued",
         intro: `Hello ${who},`,
-        body: `Your Green Wells Fargo debit card ending in ${d.last4 ?? "****"} has been issued and is linked to your account. You can now request an Authorization Transfer Code (ATC) for any transfer or payment.`,
+        body: `Your Lyncrest Digital Bank debit card ending in ${d.last4 ?? "****"} has been issued and is linked to your account. You can now request an Authorization Transfer Code (ATC) for any transfer or payment.`,
       };
     case "card-rejected":
       return {
@@ -176,13 +176,13 @@ function build(name: string, d: Record<string, unknown>): Tpl {
     case "password-reset": {
       const link = String(d.link ?? "#");
       return {
-        subject: "Reset your Green Wells Fargo password",
+        subject: "Reset your Lyncrest Digital Bank password",
         intro: `Hello ${who},`,
-        body: `We received a request to reset the password for your Green Wells Fargo account. Click the secure button below to choose a new password. This link will expire in 1 hour.<br><br><div style="text-align:center;margin:22px 0"><a href="${link}" style="display:inline-block;background:#1a3d6e;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 26px;border-radius:8px">Reset password</a></div>If the button doesn't work, copy and paste this link into your browser:<br><span style="word-break:break-all;color:#1a3d6e">${link}</span><br><br>If you did not request this, you can safely ignore this email or contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.`,
+        body: `We received a request to reset the password for your Lyncrest Digital Bank account. Click the secure button below to choose a new password. This link will expire in 1 hour.<br><br><div style="text-align:center;margin:22px 0"><a href="${link}" style="display:inline-block;background:#1a3d6e;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 26px;border-radius:8px">Reset password</a></div>If the button doesn't work, copy and paste this link into your browser:<br><span style="word-break:break-all;color:#1a3d6e">${link}</span><br><br>If you did not request this, you can safely ignore this email or contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.`,
       };
     }
     default:
-      return { subject: "Green Wells Fargo notification", intro: `Hello ${who},`, body: String(d.body ?? "You have a new notification on your Green Wells Fargo account.") };
+      return { subject: "Lyncrest Digital Bank notification", intro: `Hello ${who},`, body: String(d.body ?? "You have a new notification on your Lyncrest Digital Bank account.") };
   }
 }
 
@@ -191,12 +191,12 @@ function wrap(t: Tpl) {
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fb;padding:24px 0">
   <tr><td align="center">
     <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)">
-      <tr><td style="background:#1a3d6e;color:#ffffff;padding:20px 28px;font-weight:700;font-size:18px">Green Wells Fargo</td></tr>
+      <tr><td style="background:#1a3d6e;color:#ffffff;padding:20px 28px;font-weight:700;font-size:18px">Lyncrest Digital Bank</td></tr>
       <tr><td style="padding:28px 28px 8px;color:#0f172a;font-size:16px;font-weight:600">${t.intro}</td></tr>
       <tr><td style="padding:8px 28px 24px;color:#334155;font-size:14px;line-height:1.55">${t.body}</td></tr>
       <tr><td style="padding:18px 28px;color:#64748b;font-size:12px;border-top:1px solid #e2e8f0">
         Need help? Email us at <a href="mailto:${SUPPORT_EMAIL}" style="color:#1a3d6e">${SUPPORT_EMAIL}</a>.<br>
-        This is an automated message from Green Wells Fargo. Please do not reply to this address.
+        This is an automated message from Lyncrest Digital Bank. Please do not reply to this address.
       </td></tr>
     </table>
   </td></tr>
