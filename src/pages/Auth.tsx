@@ -136,8 +136,8 @@ export default function Auth() {
     e.preventDefault();
     if (!email) return toast.error("Enter your email");
     setLoading(true);
-    const { error } = await supabase.functions.invoke("request-password-reset", {
-      body: { email, redirectTo: `${window.location.origin}/reset-password` },
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
     if (error) return toast.error(error.message);
