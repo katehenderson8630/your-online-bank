@@ -111,7 +111,7 @@ export default function Auth() {
     // Ensure we have an active session before uploading (storage RLS requires auth.uid()).
     if (!data.session) {
       const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInErr) { setLoading(false); return toast.error("Account created but auto sign-in failed. Please sign in."); }
+      if (signInErr) { setLoading(false); return toast.error("Account created. Please check your email to confirm, then sign in."); }
     }
     const ext = selfie.type.includes("png") ? "png" : "jpg";
     const path = `${data.user.id}/avatar.${ext}`;
