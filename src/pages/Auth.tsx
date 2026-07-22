@@ -152,7 +152,7 @@ export default function Auth() {
           <img src={logoImg} alt="Lyncrest Digital Bank logo" width={44} height={44} className="w-11 h-11 object-contain" />
           <div className="leading-tight">
             <div className="font-extrabold text-lg tracking-tight text-primary">Lyncrest</div>
-            <div className="text-xs font-bold text-[hsl(var(--gold))] -mt-0.5">Fargo</div>
+            <div className="text-xs font-bold text-[hsl(var(--gold))] -mt-0.5">Bank</div>
           </div>
         </Link>
 
