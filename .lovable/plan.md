@@ -1,36 +1,58 @@
 
-## Goal
+## 1. Shrink the user dashboard cards (`src/pages/app/Dashboard.tsx`)
 
-Recreate the app from `ex-senator/online-banking-systemic-d6275484U` in this TanStack Start project, using your own Supabase project (`octvuctmhszbtyhixxwd.supabase.co`) as the backend. You said the DB schema/migrations are already applied there, so no migrations will run — this project just consumes it.
+**Balance card** (currently `p-5`, 56px avatar, `text-4xl md:text-5xl` balance, big footer):
+- Reduce padding from `p-5` → `p-4`.
+- Avatar from `w-14 h-14` → `w-10 h-10`.
+- Balance from `text-4xl md:text-5xl` → `text-2xl md:text-3xl`, top margin `mt-5` → `mt-3`.
+- Divider margin `my-4` → `my-3`.
+- Account No. / Status footer text scaled down to `text-sm` / smaller pill.
 
-## Prerequisites (you)
+**Notification cards** (KYC, Card, ATC banners — currently `p-4` with `text-sm` body and separate CTA row):
+- Reduce padding to `p-3`.
+- Title from default → `text-sm font-medium`; body copy to `text-xs`.
+- Shrink icons (`w-5 h-5` → `w-4 h-4`).
+- Buttons already `size="sm"`; tighten top margin `mt-3` → `mt-2`.
 
-1. Flip the GitHub repo to **Public** (or confirm the exact URL) so I can read the source.
-2. When I request it, paste the **Supabase service role key** into the secure secret form (needed for admin/server-side actions).
+No logic changes — visual/spacing only.
 
-## Steps I will run
+## 2. Admin dashboard wiring (verification, no code change needed)
 
-1. **Fetch source** — pull the full file tree from the repo (routes, components, hooks, styles, assets, package.json).
-2. **Port dependencies** — install any packages listed in the repo's `package.json` that aren't already here (via `bun add`). If the repo is Vite + React Router / Next, I'll adapt route files into TanStack Start's `src/routes/` convention while preserving UI, styles, and logic 1:1.
-3. **Copy assets & styles** — move `public/*`, images, fonts, and merge Tailwind theme tokens / global CSS into `src/styles.css`.
-4. **Point to your Supabase**:
-   - Write `.env` values:
-     - `VITE_SUPABASE_URL=https://octvuctmhszbtyhixxwd.supabase.co`
-     - `VITE_SUPABASE_PUBLISHABLE_KEY=<your anon key>`
-     - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (same, server-side)
-   - Store `SUPABASE_SERVICE_ROLE_KEY` via the secure secret form.
-   - Replace any generated Supabase client from the repo with a small `src/integrations/supabase/client.ts` using your URL + anon key. Regenerate `types.ts` from your schema if available; otherwise use `Database = any` as a placeholder.
-5. **Auth wiring** — keep the repo's auth flows (login, signup, session) but route them through your Supabase instance. Public routes stay top-level; authenticated routes go under `src/routes/_authenticated/`.
-6. **Server functions** — port any Supabase reads/writes into `createServerFn` (`src/lib/*.functions.ts`) with `requireSupabaseAuth` middleware for user-scoped operations. No new Edge Functions.
-7. **Metadata** — set real title/description in `__root.tsx` for the banking app (replacing "Lovable App" defaults).
-8. **Verify** — hit `/`, sign-in, dashboard, and one write action; confirm rows land in your Supabase.
+Confirmed the admin app is already wired to real user data via the personal Supabase project:
+- `src/pages/admin/Overview.tsx` — live counts of users, pending KYC, pending approvals across `transfer_requests`, `deposit_requests`, `loan_requests`, `card_requests`, `atc_requests`, plus total deposits. Subscribes to realtime `postgres_changes` on all those tables.
+- `src/pages/admin/Approvals.tsx` — lists pending items per tab (transfers/deposits/loans/cards/ATC) with Approve/Reject buttons, refreshing live.
+- `src/pages/admin/Users.tsx` — lists every profile with KYC badge, "Manage" opens a dialog with Approve KYC / Reject / Freeze / Unfreeze.
+- All actions call the `admin-action` edge function, which updates the correct request table (`status = approved|rejected`), posts the transaction via `post_transaction` RPC, and emails the user.
 
-## Out of scope
+If the admin console currently shows empty/stale data, the cause is that **`admin-action` is not yet deployed to your Supabase project**, not missing wiring. Deploy step below.
 
-- Running SQL migrations against your Supabase (you said it's already set up).
-- Copying data/users from the original project.
-- Changing feature behavior — this is a like-for-like clone.
+## 3. Where to credit / debit a user
 
-## Blocking question
+The credit & debit controls live inside **Admin → Users & KYC → click "Manage" on any user**. In the dialog scroll to the "Credit / Debit account" section:
+1. Pick the account (checking/savings) from the dropdown.
+2. Enter a positive amount.
+3. Enter an optional description.
+4. Click **Credit** to add funds, **Debit** to remove funds (allows negative balance).
 
-Repo is still 404. Please make `ex-senator/online-banking-systemic-d6275484U` public (or paste the correct URL/zip), then approve this plan and I'll build it.
+This calls `admin-action` with `kind: "adjustment"` which posts a real transaction and emails the user a `balance-adjusted` notification.
+
+## 4. Transactional emails — deployment checklist
+
+All email templates already exist in `supabase/functions/send-transactional-email/index.ts` (welcome, KYC approved/rejected, deposit/transfer/withdrawal/loan/card/ATC approved & rejected, balance-adjusted, frozen/unfrozen, etc.). They only work once you:
+
+1. **Deploy the function** to your project:
+   ```bash
+   supabase functions deploy send-transactional-email
+   supabase functions deploy admin-action
+   supabase functions deploy internal-transfer
+   ```
+2. **Set the Resend secret** in Supabase Dashboard → Project Settings → Edge Functions → Secrets:
+   - `RESEND_API_KEY` = your Resend key
+3. **Verify the sender domain** `Lyncrestdigital.online` in your Resend dashboard so `noreply@Lyncrestdigital.online` can send. Until verified, Resend will only deliver to your own account owner email.
+4. `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` are auto-injected — do not set manually.
+
+No code changes are needed for email — the wiring is already there. If emails still don't arrive after deploy, share the Resend logs or the edge function logs and I'll debug.
+
+## Technical notes
+- Balance card gradient and semantic tokens preserved — only sizing utilities change.
+- No schema, RLS, or edge function code touched in this plan.
