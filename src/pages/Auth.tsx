@@ -82,51 +82,17 @@ export default function Auth() {
     e.preventDefault();
     if (!email || !password) return toast.error("Enter your email and password");
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke("request-login-code", {
-      body: { email, password },
-    });
-    setLoading(false);
-    if (error || (data && (data as { error?: string }).error)) {
-      const msg = (data as { error?: string } | null)?.error ?? error?.message ?? "Could not sign in";
-      return toast.error(msg);
-    }
-    toast.success("We sent a 6-digit code to your email.");
-    setOtp("");
-    setMode("otp");
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otp.length !== 6) return toast.error("Enter the 6-digit code");
-    setLoading(true);
-    const { data: vData, error: vErr } = await supabase.functions.invoke("verify-login-code", {
-      body: { email, code: otp },
-    });
-    if (vErr || (vData as { error?: string } | null)?.error) {
-      setLoading(false);
-      return toast.error((vData as { error?: string } | null)?.error ?? vErr?.message ?? "Invalid code");
-    }
     const { error: signErr } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (signErr) return toast.error(signErr.message);
+    if (signErr) { setLoading(false); return toast.error(signErr.message); }
     const uid = (await supabase.auth.getUser()).data.user?.id ?? "";
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+    setLoading(false);
     const isAdmin = email.trim().toLowerCase() === ADMIN_EMAIL && roles?.some((r) => r.role === "admin");
     nav(isAdmin ? "/admin" : "/app", { replace: true });
   };
 
-  const resendOtp = async () => {
-    if (!email || !password) return toast.error("Please sign in again");
-    setOtpResending(true);
-    const { data, error } = await supabase.functions.invoke("request-login-code", {
-      body: { email, password },
-    });
-    setOtpResending(false);
-    if (error || (data as { error?: string } | null)?.error) {
-      return toast.error((data as { error?: string } | null)?.error ?? error?.message ?? "Could not resend");
-    }
-    toast.success("A new code has been sent to your email.");
-  };
+  const handleVerifyOtp = async (e: React.FormEvent) => { e.preventDefault(); };
+  const resendOtp = async () => {};
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,7 +111,7 @@ export default function Auth() {
     // Ensure we have an active session before uploading (storage RLS requires auth.uid()).
     if (!data.session) {
       const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInErr) { setLoading(false); return toast.error("Account created but auto sign-in failed. Please sign in."); }
+      if (signInErr) { setLoading(false); return toast.error("Account created. Please check your email to confirm, then sign in."); }
     }
     const ext = selfie.type.includes("png") ? "png" : "jpg";
     const path = `${data.user.id}/avatar.${ext}`;
@@ -170,8 +136,8 @@ export default function Auth() {
     e.preventDefault();
     if (!email) return toast.error("Enter your email");
     setLoading(true);
-    const { error } = await supabase.functions.invoke("request-password-reset", {
-      body: { email, redirectTo: `${window.location.origin}/reset-password` },
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -186,7 +152,7 @@ export default function Auth() {
           <img src={logoImg} alt="Lyncrest Digital Bank logo" width={44} height={44} className="w-11 h-11 object-contain" />
           <div className="leading-tight">
             <div className="font-extrabold text-lg tracking-tight text-primary">Lyncrest</div>
-            <div className="text-xs font-bold text-[hsl(var(--gold))] -mt-0.5">Fargo</div>
+            <div className="text-xs font-bold text-[hsl(var(--gold))] -mt-0.5">Bank</div>
           </div>
         </Link>
 
