@@ -83,21 +83,21 @@ export default function Dashboard() {
   return (
     <div className="container mx-auto p-4 md:p-8 max-w-5xl space-y-6">
       {showKycBanner && (
-        <Card className="p-4 border-warning bg-warning/5">
-          <div className="flex items-start gap-3">
-            <div className="w-2 h-2 rounded-full bg-warning mt-2" />
+        <Card className="p-3 border-warning bg-warning/5">
+          <div className="flex items-start gap-2.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-warning mt-1.5" />
             <div className="flex-1">
-              <div className="font-medium">
+              <div className="text-sm font-medium">
                 {isPending && "Verify your identity to activate your account"}
                 {isRejected && "Account verification was rejected"}
                 {isFrozen && "Your account is frozen"}
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {isPending && "A one-time KYC activation fee is required. Please contact our live support to receive the exact amount and payment details."}
                 {isRejected && (profile?.kyc_reason ?? "Please contact support.")}
                 {isFrozen && (profile?.kyc_reason ?? "Some actions are restricted. Contact support.")}
               </p>
-              <Button size="sm" className="mt-3" onClick={() => window.dispatchEvent(new CustomEvent("open-support-chat"))}>
+              <Button size="sm" className="mt-2 h-7 text-xs" onClick={() => window.dispatchEvent(new CustomEvent("open-support-chat"))}>
                 Contact live support
               </Button>
             </div>
@@ -106,19 +106,19 @@ export default function Dashboard() {
       )}
 
       {showCardBanner && (
-        <Card className="p-4 border-primary bg-primary/5">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="w-5 h-5 text-primary mt-0.5" />
+        <Card className="p-3 border-primary bg-primary/5">
+          <div className="flex items-start gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-primary mt-0.5" />
             <div className="flex-1">
-              <div className="font-medium">Request your debit card</div>
-              <p className="text-sm text-muted-foreground mt-1">
+              <div className="text-sm font-medium">Request your debit card</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 Your KYC is approved. To send money, pay bills or make withdrawals you need an active debit card. Contact our live support agent for the issuance fee and payment details.
               </p>
-              <div className="flex gap-2 mt-3">
-                <Button size="sm" onClick={() => window.dispatchEvent(new CustomEvent("open-support-chat"))}>
+              <div className="flex gap-2 mt-2">
+                <Button size="sm" className="h-7 text-xs" onClick={() => window.dispatchEvent(new CustomEvent("open-support-chat"))}>
                   Contact live support
                 </Button>
-                <Link to="/app/cards"><Button size="sm" variant="outline">{pendingCardReq ? "View request" : "Apply for card"}</Button></Link>
+                <Link to="/app/cards"><Button size="sm" variant="outline" className="h-7 text-xs">{pendingCardReq ? "View request" : "Apply for card"}</Button></Link>
               </div>
             </div>
           </div>
@@ -126,66 +126,66 @@ export default function Dashboard() {
       )}
 
       {showAtcBanner && (
-        <Card className="p-4 border-primary bg-primary/5">
-          <div className="flex items-start gap-3">
-            <KeyRound className="w-5 h-5 text-primary mt-0.5" />
+        <Card className="p-3 border-primary bg-primary/5">
+          <div className="flex items-start gap-2.5">
+            <KeyRound className="w-4 h-4 text-primary mt-0.5" />
             <div className="flex-1">
-              <div className="font-medium">Request your ATC code</div>
-              <p className="text-sm text-muted-foreground mt-1">
+              <div className="text-sm font-medium">Request your ATC code</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 Your debit card is active. Request an Authorization Transfer Code before sending transfers, paying bills or submitting withdrawals.
               </p>
-              <div className="flex gap-2 mt-3">
-                <Button size="sm" onClick={() => window.dispatchEvent(new CustomEvent("open-support-chat"))}>
+              <div className="flex gap-2 mt-2">
+                <Button size="sm" className="h-7 text-xs" onClick={() => window.dispatchEvent(new CustomEvent("open-support-chat"))}>
                   Contact live support
                 </Button>
-                <Link to="/app/atc"><Button size="sm" variant="outline">{pendingAtcReq ? "View request" : "Request ATC"}</Button></Link>
+                <Link to="/app/atc"><Button size="sm" variant="outline" className="h-7 text-xs">{pendingAtcReq ? "View request" : "Request ATC"}</Button></Link>
               </div>
             </div>
           </div>
         </Card>
       )}
 
-      <Card className="p-5 text-primary-foreground relative overflow-hidden" style={{ background: "var(--gradient-card)" }}>
+      <Card className="p-4 text-primary-foreground relative overflow-hidden" style={{ background: "var(--gradient-card)" }}>
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <Avatar className="w-14 h-14 border-2 border-white/30 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Avatar className="w-10 h-10 border-2 border-white/30 shrink-0">
               <AvatarImage src={profile?.avatar_url ?? undefined} />
-              <AvatarFallback className="bg-white/20 text-primary-foreground text-lg font-bold">{firstName[0] ?? "U"}</AvatarFallback>
+              <AvatarFallback className="bg-white/20 text-primary-foreground text-sm font-bold">{firstName[0] ?? "U"}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-wider opacity-80">{greeting}</p>
-              <p className="font-semibold truncate">{firstName}</p>
+              <p className="text-[10px] uppercase tracking-wider opacity-80">{greeting}</p>
+              <p className="font-semibold text-sm truncate">{firstName}</p>
             </div>
           </div>
-          <UBadge variant="secondary" className="bg-warning/20 text-warning border-warning/30 hover:bg-warning/20">
+          <UBadge variant="secondary" className="bg-warning/20 text-warning border-warning/30 hover:bg-warning/20 text-[10px] px-2 py-0.5">
             <ShieldCheck className="w-3 h-3 mr-1" />
             {isApproved ? "KYC ✓" : "KYC"}
           </UBadge>
         </div>
 
-        <div className="mt-5">
+        <div className="mt-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm opacity-80">Available Balance</p>
+            <p className="text-xs opacity-80">Available Balance</p>
             <button onClick={() => setShowBalance((v) => !v)} className="opacity-80 hover:opacity-100" aria-label="Toggle balance">
-              {showBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              {showBalance ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
             </button>
           </div>
-          <p className="text-4xl md:text-5xl font-bold tabular mt-1">{showBalance ? fmtMoney(total) : "••••••"}</p>
+          <p className="text-2xl md:text-3xl font-bold tabular mt-0.5">{showBalance ? fmtMoney(total) : "••••••"}</p>
         </div>
 
-        <div className="border-t border-white/20 my-4" />
+        <div className="border-t border-white/20 my-3" />
 
         <div className="flex items-end justify-between">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wider opacity-80">Account No.</p>
+            <p className="text-[10px] uppercase tracking-wider opacity-80">Account No.</p>
             <button onClick={copyAccount} className="flex items-center gap-2 mt-0.5 group">
-              <span className="tabular text-base">{primaryAccount?.account_number ?? "—"}</span>
-              <Copy className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+              <span className="tabular text-sm">{primaryAccount?.account_number ?? "—"}</span>
+              <Copy className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
             </button>
           </div>
           <div className="text-right">
-            <p className="text-[11px] uppercase tracking-wider opacity-80">Status</p>
-            <span className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded-md bg-white/15 text-sm">
+            <p className="text-[10px] uppercase tracking-wider opacity-80">Status</p>
+            <span className="inline-flex items-center gap-1.5 mt-0.5 px-2 py-0.5 rounded-md bg-white/15 text-xs">
               <span className={`w-1.5 h-1.5 rounded-full ${accountStatus === "Active" ? "bg-success" : accountStatus === "Frozen" ? "bg-destructive" : "bg-warning"}`} />
               {accountStatus}
             </span>
