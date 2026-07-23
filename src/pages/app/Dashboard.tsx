@@ -218,7 +218,7 @@ export default function Dashboard() {
           <Card className="p-6 text-sm text-muted-foreground">Loading…</Card>
         ) : accounts.length === 0 ? (
           <Card className="p-6 text-sm text-muted-foreground text-center">
-            No accounts yet. Once your identity is verified, accounts will appear here.
+            Setting up your accounts… refresh in a moment.
           </Card>
         ) : (
           <div className="grid sm:grid-cols-2 gap-3">

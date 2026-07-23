@@ -26,7 +26,7 @@ const signupSchema = z.object({
   ssn: z.string().regex(/^\d{9}$/, "Enter your 9-digit SSN"),
 });
 
-type Mode = "signin" | "signup" | "forgot" | "otp";
+type Mode = "signin" | "signup" | "forgot";
 
 type PwProps = { value: string; onChange: (v: string) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type">;
 function PasswordInput({ value, onChange, ...rest }: PwProps) {
@@ -48,8 +48,7 @@ export default function Auth() {
   const initial = params.get("mode");
   const [mode, setMode] = useState<Mode>(initial === "signup" ? "signup" : initial === "forgot" ? "forgot" : "signin");
   const [loading, setLoading] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [otpResending, setOtpResending] = useState(false);
+
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -91,8 +90,8 @@ export default function Auth() {
     nav(isAdmin ? "/admin" : "/app", { replace: true });
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => { e.preventDefault(); };
-  const resendOtp = async () => {};
+
+
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,11 +135,12 @@ export default function Auth() {
     e.preventDefault();
     if (!email) return toast.error("Enter your email");
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    // Send via our Resend-backed edge function (branded email)
+    const { error } = await supabase.functions.invoke("request-password-reset", {
+      body: { email, redirectTo: `${window.location.origin}/reset-password` },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Could not send reset email. Please try again.");
     toast.success("If an account exists for that email, a reset link has been sent.");
     setMode("signin");
   };
@@ -156,7 +156,7 @@ export default function Auth() {
           </div>
         </Link>
 
-        {mode !== "forgot" && mode !== "otp" && (
+        {mode !== "forgot" && (
           <div className="grid grid-cols-2 gap-2 mb-6 p-1 bg-secondary rounded-lg">
             <button type="button" onClick={() => setMode("signin")} className={`py-2 rounded-md text-sm font-medium ${mode === "signin" ? "bg-background shadow-sm" : "text-muted-foreground"}`}>Sign in</button>
             <button type="button" onClick={() => setMode("signup")} className={`py-2 rounded-md text-sm font-medium ${mode === "signup" ? "bg-background shadow-sm" : "text-muted-foreground"}`}>Open account</button>
@@ -176,33 +176,6 @@ export default function Auth() {
           </form>
         )}
 
-        {mode === "otp" && (
-          <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <h2 className="font-semibold">Enter your sign-in code</h2>
-            <p className="text-sm text-muted-foreground">We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>. It expires in 10 minutes.</p>
-            <div>
-              <Label>6-digit code</Label>
-              <Input
-                inputMode="numeric"
-                autoFocus
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="123456"
-                className="text-center text-xl tracking-[0.6em] font-semibold"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading || otp.length !== 6}>
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Verify & sign in
-            </Button>
-            <div className="flex items-center justify-between text-xs">
-              <button type="button" onClick={() => { setMode("signin"); setOtp(""); }} className="text-primary hover:underline">Back</button>
-              <button type="button" onClick={resendOtp} disabled={otpResending} className="text-primary hover:underline disabled:opacity-50">
-                {otpResending ? "Sending…" : "Resend code"}
-              </button>
-            </div>
-          </form>
-        )}
 
         {mode === "forgot" && (
           <form onSubmit={handleForgot} className="space-y-4">
