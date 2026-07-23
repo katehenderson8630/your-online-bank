@@ -177,33 +177,6 @@ export default function Auth() {
           </form>
         )}
 
-        {mode === "otp" && (
-          <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <h2 className="font-semibold">Enter your sign-in code</h2>
-            <p className="text-sm text-muted-foreground">We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>. It expires in 10 minutes.</p>
-            <div>
-              <Label>6-digit code</Label>
-              <Input
-                inputMode="numeric"
-                autoFocus
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="123456"
-                className="text-center text-xl tracking-[0.6em] font-semibold"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading || otp.length !== 6}>
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Verify & sign in
-            </Button>
-            <div className="flex items-center justify-between text-xs">
-              <button type="button" onClick={() => { setMode("signin"); setOtp(""); }} className="text-primary hover:underline">Back</button>
-              <button type="button" onClick={resendOtp} disabled={otpResending} className="text-primary hover:underline disabled:opacity-50">
-                {otpResending ? "Sending…" : "Resend code"}
-              </button>
-            </div>
-          </form>
-        )}
 
         {mode === "forgot" && (
           <form onSubmit={handleForgot} className="space-y-4">
