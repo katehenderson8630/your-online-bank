@@ -48,8 +48,7 @@ export default function Auth() {
   const initial = params.get("mode");
   const [mode, setMode] = useState<Mode>(initial === "signup" ? "signup" : initial === "forgot" ? "forgot" : "signin");
   const [loading, setLoading] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [otpResending, setOtpResending] = useState(false);
+
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
