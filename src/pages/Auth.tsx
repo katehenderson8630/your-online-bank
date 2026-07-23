@@ -26,7 +26,7 @@ const signupSchema = z.object({
   ssn: z.string().regex(/^\d{9}$/, "Enter your 9-digit SSN"),
 });
 
-type Mode = "signin" | "signup" | "forgot" | "otp";
+type Mode = "signin" | "signup" | "forgot";
 
 type PwProps = { value: string; onChange: (v: string) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type">;
 function PasswordInput({ value, onChange, ...rest }: PwProps) {
