@@ -136,11 +136,12 @@ export default function Auth() {
     e.preventDefault();
     if (!email) return toast.error("Enter your email");
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    // Send via our Resend-backed edge function (branded email)
+    const { error } = await supabase.functions.invoke("request-password-reset", {
+      body: { email, redirectTo: `${window.location.origin}/reset-password` },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Could not send reset email. Please try again.");
     toast.success("If an account exists for that email, a reset link has been sent.");
     setMode("signin");
   };
