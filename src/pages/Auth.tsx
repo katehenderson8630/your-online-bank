@@ -156,7 +156,7 @@ export default function Auth() {
           </div>
         </Link>
 
-        {mode !== "forgot" && mode !== "otp" && (
+        {mode !== "forgot" && (
           <div className="grid grid-cols-2 gap-2 mb-6 p-1 bg-secondary rounded-lg">
             <button type="button" onClick={() => setMode("signin")} className={`py-2 rounded-md text-sm font-medium ${mode === "signin" ? "bg-background shadow-sm" : "text-muted-foreground"}`}>Sign in</button>
             <button type="button" onClick={() => setMode("signup")} className={`py-2 rounded-md text-sm font-medium ${mode === "signup" ? "bg-background shadow-sm" : "text-muted-foreground"}`}>Open account</button>
