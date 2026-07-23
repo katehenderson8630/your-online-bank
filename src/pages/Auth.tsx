@@ -90,8 +90,8 @@ export default function Auth() {
     nav(isAdmin ? "/admin" : "/app", { replace: true });
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => { e.preventDefault(); };
-  const resendOtp = async () => {};
+
+
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
