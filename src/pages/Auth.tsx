@@ -124,9 +124,15 @@ export default function Auth() {
       address, date_of_birth: dateOfBirth, ssn, phone, full_name: fullName,
       kyc_status: "pending",
     }, { onConflict: "id" });
-    sendEmail("welcome", email, `welcome-${data.user.id}`, { name: fullName });
-    sendEmail("kyc-submitted", email, `kyc-sub-${data.user.id}`, { name: fullName });
-    toast.success("Account created! KYC under review.");
+    const emailResults = await Promise.allSettled([
+      sendEmail("welcome", email, `welcome-${data.user.id}`, { name: fullName }),
+      sendEmail("kyc-submitted", email, `kyc-sub-${data.user.id}`, { name: fullName }),
+    ]);
+    if (emailResults.some((result) => result.status === "rejected")) {
+      toast.warning("Account created, but one email could not be sent. Please contact support.");
+    } else {
+      toast.success("Account created! KYC under review.");
+    }
     setLoading(false);
     nav("/app", { replace: true });
   };
@@ -136,11 +142,11 @@ export default function Auth() {
     if (!email) return toast.error("Enter your email");
     setLoading(true);
     // Send via our Resend-backed edge function (branded email)
-    const { error } = await supabase.functions.invoke("request-password-reset", {
+    const { data, error } = await supabase.functions.invoke("request-password-reset", {
       body: { email, redirectTo: `${window.location.origin}/reset-password` },
     });
     setLoading(false);
-    if (error) return toast.error("Could not send reset email. Please try again.");
+    if (error || (data as { error?: string } | null)?.error) return toast.error((data as { error?: string } | null)?.error ?? "Could not send reset email. Please try again.");
     toast.success("If an account exists for that email, a reset link has been sent.");
     setMode("signin");
   };

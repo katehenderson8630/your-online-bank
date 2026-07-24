@@ -12,9 +12,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const url = Deno.env.get("SUPABASE_URL")!;
-    const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const url = Deno.env.get("SUPABASE_URL");
+    const anon = Deno.env.get("SUPABASE_ANON_KEY");
+    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !anon || !service) return json({ error: "Supabase function secrets are not configured" }, 500);
     const auth = req.headers.get("Authorization") ?? "";
 
     const userClient = createClient(url, anon, { global: { headers: { Authorization: auth } } });
@@ -26,13 +27,46 @@ Deno.serve(async (req) => {
     if (!roles?.length || user.email?.toLowerCase() !== ADMIN_EMAIL) return json({ error: "forbidden" }, 403);
 
     const { kind, id, action, note } = (await req.json()) as {
-      kind: "transfer" | "deposit" | "withdrawal" | "kyc" | "freeze" | "adjustment" | "reverse" | "loan" | "card" | "atc";
+      kind: "transfer" | "deposit" | "withdrawal" | "kyc" | "freeze" | "adjustment" | "reverse" | "loan" | "card" | "atc" | "accounts";
       id: string; action: "approve" | "reject" | "freeze" | "unfreeze"; note?: string;
     };
 
     const log = async (act: string, details: Record<string, unknown>, target_user?: string) => {
       await admin.from("admin_audit_log").insert({ admin_id: user.id, action: act, target_id: id, target_user_id: target_user, details });
     };
+
+    const accountNumber = async () => {
+      const { data } = await admin.rpc("gen_account_number");
+      if (typeof data === "string" && data.length > 0) return data;
+      return "100" + Math.floor(Math.random() * 1e7).toString().padStart(7, "0");
+    };
+
+    const ensureAccounts = async (targetUserId: string) => {
+      const { data: existing, error: existingError } = await admin
+        .from("accounts")
+        .select("id, account_type")
+        .eq("user_id", targetUserId);
+      if (existingError) throw new Error(existingError.message);
+      const existingTypes = new Set((existing ?? []).map((account) => account.account_type));
+      const rows = [];
+      if (!existingTypes.has("checking")) rows.push({ user_id: targetUserId, account_type: "checking", account_number: await accountNumber() });
+      if (!existingTypes.has("savings")) rows.push({ user_id: targetUserId, account_type: "savings", account_number: await accountNumber() });
+      if (rows.length > 0) {
+        const { error: insertError } = await admin.from("accounts").insert(rows);
+        if (insertError) throw new Error(insertError.message);
+      }
+      const { data: accounts, error: loadError } = await admin.from("accounts").select("*").eq("user_id", targetUserId).order("created_at");
+      if (loadError) throw new Error(loadError.message);
+      return accounts ?? [];
+    };
+
+    if (kind === "accounts") {
+      const { data: prof } = await admin.from("profiles").select("id").eq("id", id).single();
+      if (!prof) return json({ error: "user not found" }, 404);
+      const accounts = await ensureAccounts(id);
+      await log("ensure_accounts", { account_count: accounts.length }, id);
+      return json({ ok: true, accounts });
+    }
 
     if (kind === "transfer") {
       const { data: tr } = await admin.from("transfer_requests").select("*").eq("id", id).single();
@@ -125,14 +159,7 @@ Deno.serve(async (req) => {
       await admin.from("profiles").update({ kyc_status: newStatus, kyc_reason: note ?? null }).eq("id", id);
       const { data: prof } = await admin.from("profiles").select("email, full_name").eq("id", id).single();
       if (action === "approve") {
-        const { data: existing } = await admin.from("accounts").select("id").eq("user_id", id);
-        if (!existing?.length) {
-          const acctNum = () => "100" + Math.floor(Math.random() * 1e7).toString().padStart(7, "0");
-          await admin.from("accounts").insert([
-            { user_id: id, account_type: "checking", account_number: acctNum() },
-            { user_id: id, account_type: "savings", account_number: acctNum() },
-          ]);
-        }
+        await ensureAccounts(id);
         await emailUser(admin, id, "kyc-approved", { name: prof?.full_name });
       } else {
         await emailUser(admin, id, "kyc-rejected", { name: prof?.full_name, reason: note });
@@ -155,6 +182,7 @@ Deno.serve(async (req) => {
       const amt = Number(parsed.amount ?? 0);
       if (!amt) return json({ error: "amount required" }, 400);
       const { data: acct } = await admin.from("accounts").select("user_id").eq("id", id).single();
+      if (!acct) return json({ error: "account not found" }, 404);
       const txType = amt > 0 ? "adjustment" : "withdrawal";
       const { error } = await admin.rpc("post_transaction", {
         _account_id: id, _type: txType, _amount: Math.abs(amt),
@@ -162,8 +190,8 @@ Deno.serve(async (req) => {
         _counterparty: null, _related_tx_id: null, _allow_negative: parsed.allow_negative ?? true,
       });
       if (error) return json({ error: error.message }, 400);
-      await emailUser(admin, acct!.user_id, "balance-adjusted", { amount: amt, description: parsed.description });
-      await log("balance_adjustment", { account_id: id, amount: amt, description: parsed.description }, acct!.user_id);
+      await emailUser(admin, acct.user_id, "balance-adjusted", { amount: amt, description: parsed.description });
+      await log("balance_adjustment", { account_id: id, amount: amt, description: parsed.description }, acct.user_id);
       return json({ ok: true });
     }
 
@@ -279,8 +307,9 @@ async function emailUser(admin: ReturnType<typeof createClient>, userId: string,
   const { data: prof } = await admin.from("profiles").select("email, full_name").eq("id", userId).single();
   if (!prof?.email) return;
   try {
-    await admin.functions.invoke("send-transactional-email", {
-      body: { templateName, recipientEmail: prof.email, templateData: { name: prof.full_name, ...templateData } },
+    const { data, error } = await admin.functions.invoke("send-transactional-email", {
+      body: { templateName, recipientEmail: prof.email, idempotencyKey: `${templateName}-${userId}-${Date.now()}`, templateData: { name: prof.full_name, ...templateData } },
     });
+    if (error || (data as { error?: string } | null)?.error) console.error("email failed", { templateName, userId, error: error?.message, data });
   } catch (e) { console.error("email failed", e); }
 }
