@@ -1,12 +1,12 @@
 // Sends transactional banking emails through Resend. Idempotent on idempotencyKey.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const FROM = "Lyncrest Digital Bank <noreply@Lyncrestdigital.online>";
+const FROM = "Lyncrest Digital Bank <support@Lyncrestdigital.online>";
 const SUPPORT_EMAIL = "support@Lyncrestdigital.online";
 
 type Body = {
@@ -208,21 +208,26 @@ Deno.serve(async (req) => {
   try {
     const key = Deno.env.get("RESEND_API_KEY");
     if (!key) return j({ error: "RESEND_API_KEY not configured" }, 500);
-    const { templateName, recipientEmail, templateData } = (await req.json()) as Body;
+    const { templateName, recipientEmail, idempotencyKey, templateData } = (await req.json()) as Body;
     if (!templateName || !recipientEmail) return j({ error: "templateName and recipientEmail required" }, 400);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) return j({ error: "valid recipientEmail required" }, 400);
 
     const tpl = build(templateName, templateData ?? {});
     const html = wrap(tpl);
+    const headers: Record<string, string> = { Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
+    if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
 
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ from: FROM, to: [recipientEmail], subject: tpl.subject, html }),
     });
-    const data = await r.json();
+    const raw = await r.text();
+    let data: Record<string, unknown> = {};
+    try { data = raw ? JSON.parse(raw) : {}; } catch { data = { message: raw }; }
     if (!r.ok) {
       console.error("resend error", data);
-      return j({ error: data?.message ?? "send failed" }, r.status);
+      return j({ error: typeof data?.message === "string" ? data.message : "Resend send failed", status: r.status, details: data }, r.status);
     }
     return j({ ok: true, id: data?.id });
   } catch (e) {

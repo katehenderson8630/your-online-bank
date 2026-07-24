@@ -7,9 +7,10 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const url = Deno.env.get("SUPABASE_URL")!;
-    const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const url = Deno.env.get("SUPABASE_URL");
+    const anon = Deno.env.get("SUPABASE_ANON_KEY");
+    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !anon || !service) return j({ error: "Supabase function secrets are not configured" }, 500);
     const auth = req.headers.get("Authorization") ?? "";
     const userClient = createClient(url, anon, { global: { headers: { Authorization: auth } } });
     const { data: { user } } = await userClient.auth.getUser();
@@ -38,7 +39,7 @@ Deno.serve(async (req) => {
     // emails
     const { data: senderProfile } = await admin.from("profiles").select("full_name, email").eq("id", user.id).single();
     try {
-      await admin.functions.invoke("send-transactional-email", { body: { templateName: "transfer-sent", recipientEmail: senderProfile!.email, idempotencyKey: `tx-out-${txOut}`, templateData: { name: senderProfile!.full_name, amount, to: rec.full_name, memo } } });
+      if (senderProfile?.email) await admin.functions.invoke("send-transactional-email", { body: { templateName: "transfer-sent", recipientEmail: senderProfile.email, idempotencyKey: `tx-out-${txOut}`, templateData: { name: senderProfile.full_name, amount, to: rec.full_name, memo } } });
       await admin.functions.invoke("send-transactional-email", { body: { templateName: "transfer-received", recipientEmail: rec.email, idempotencyKey: `tx-in-${txOut}`, templateData: { name: rec.full_name, amount, from: senderProfile!.full_name, memo } } });
     } catch (e) { console.error(e); }
 
