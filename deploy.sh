@@ -38,8 +38,6 @@ supabase secrets set \
   --project-ref "$PROJECT_REF"
 
 echo "==> Deploying public (no-JWT) functions"
-supabase functions deploy request-login-code   --no-verify-jwt --project-ref "$PROJECT_REF"
-supabase functions deploy verify-login-code    --no-verify-jwt --project-ref "$PROJECT_REF"
 supabase functions deploy request-password-reset --no-verify-jwt --project-ref "$PROJECT_REF"
 
 echo "==> Deploying authenticated functions"
@@ -48,5 +46,5 @@ supabase functions deploy internal-transfer        --project-ref "$PROJECT_REF"
 supabase functions deploy admin-action             --project-ref "$PROJECT_REF"
 
 echo ""
-echo "All six edge functions deployed to https://$PROJECT_REF.supabase.co"
+echo "All active edge functions deployed to https://$PROJECT_REF.supabase.co"
 echo "Verify at: https://supabase.com/dashboard/project/$PROJECT_REF/functions"
