@@ -52,8 +52,13 @@ Deno.serve(async (req) => {
       options: { redirectTo: safeRedirectTo },
     });
 
-    // Always respond with success to avoid email enumeration
-    if (error || !data?.properties?.action_link) {
+    if (error) {
+      console.error("password reset link failed", error.message);
+      return json({ error: error.message }, 500);
+    }
+
+    // Keep this response generic only when the address has no usable recovery link.
+    if (!data?.properties?.action_link) {
       return json({ ok: true });
     }
 
