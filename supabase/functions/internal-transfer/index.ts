@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     const { data: senderProfile } = await admin.from("profiles").select("full_name, email").eq("id", user.id).single();
     try {
       if (senderProfile?.email) await admin.functions.invoke("send-transactional-email", { body: { templateName: "transfer-sent", recipientEmail: senderProfile.email, idempotencyKey: `tx-out-${txOut}`, templateData: { name: senderProfile.full_name, amount, to: rec.full_name, memo } } });
-      await admin.functions.invoke("send-transactional-email", { body: { templateName: "transfer-received", recipientEmail: rec.email, idempotencyKey: `tx-in-${txOut}`, templateData: { name: rec.full_name, amount, from: senderProfile!.full_name, memo } } });
+      await admin.functions.invoke("send-transactional-email", { body: { templateName: "transfer-received", recipientEmail: rec.email, idempotencyKey: `tx-in-${txOut}`, templateData: { name: rec.full_name, amount, from: senderProfile?.full_name ?? "Sender", memo } } });
     } catch (e) { console.error(e); }
 
     return j({ ok: true, tx_id: txOut });
