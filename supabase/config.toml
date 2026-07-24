@@ -3,8 +3,3 @@ project_id = "octvuctmhszbtyhixxwd"
 [functions.request-password-reset]
 verify_jwt = false
 
-[functions.request-login-code]
-verify_jwt = false
-
-[functions.verify-login-code]
-verify_jwt = false
