@@ -38,9 +38,15 @@ Deno.serve(async (req) => {
 
     // emails
     const { data: senderProfile } = await admin.from("profiles").select("full_name, email").eq("id", user.id).single();
+    const { data: tx } = typeof txOut === "string"
+      ? await admin.from("transactions").select("reference, balance_after, created_at").eq("id", txOut).maybeSingle()
+      : { data: null };
+    const { data: senderAccount } = await admin.from("accounts").select("account_type, account_number").eq("id", from_account_id).maybeSingle();
+    const { data: recipientAccount } = await admin.from("accounts").select("account_type, account_number").eq("id", toAcc.id).maybeSingle();
+    const shared = { reference: tx?.reference ?? txOut, date: tx?.created_at ?? new Date().toISOString() };
     try {
-      if (senderProfile?.email) await admin.functions.invoke("send-transactional-email", { body: { templateName: "transfer-sent", recipientEmail: senderProfile.email, idempotencyKey: `tx-out-${txOut}`, templateData: { name: senderProfile.full_name, amount, to: rec.full_name, memo } } });
-      await admin.functions.invoke("send-transactional-email", { body: { templateName: "transfer-received", recipientEmail: rec.email, idempotencyKey: `tx-in-${txOut}`, templateData: { name: rec.full_name, amount, from: senderProfile?.full_name ?? "Sender", memo } } });
+      if (senderProfile?.email) await admin.functions.invoke("send-transactional-email", { body: { templateName: "transfer-sent", recipientEmail: senderProfile.email, idempotencyKey: `tx-out-${txOut}`, templateData: { name: senderProfile.full_name, amount, to: rec.full_name, memo, description: memo, balanceAfter: tx?.balance_after, accountType: senderAccount?.account_type, accountLast4: senderAccount?.account_number?.slice(-4), ...shared } } });
+      await admin.functions.invoke("send-transactional-email", { body: { templateName: "transfer-received", recipientEmail: rec.email, idempotencyKey: `tx-in-${txOut}`, templateData: { name: rec.full_name, amount, from: senderProfile?.full_name ?? "Sender", memo, description: memo, accountType: recipientAccount?.account_type, accountLast4: recipientAccount?.account_number?.slice(-4), ...shared } } });
     } catch (e) { console.error(e); }
 
     return j({ ok: true, tx_id: txOut });
