@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const FROM = "Lyncrest Digital Bank <support@Lyncrestdigital.online>";
+const FROM = "Lyncrest Digital Bank <support@lyncrestdigital.online>";
 const SUPPORT_EMAIL = "support@Lyncrestdigital.online";
 
 type Body = {
@@ -23,10 +23,21 @@ function fmtMoney(v: unknown) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
-function alertBlock(label: string, amount: unknown, rows: Record<string, string>) {
+function fmtDate(v: unknown) {
+  const date = typeof v === "string" || typeof v === "number" ? new Date(v) : new Date();
+  const safe = Number.isNaN(date.getTime()) ? new Date() : date;
+  return safe.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZoneName: "short" });
+}
+
+function safe(v: unknown, fallback = "—") {
+  if (v === null || v === undefined || v === "") return fallback;
+  return String(v);
+}
+
+function alertBlock(label: string, amount: unknown, rows: Record<string, string>, dateValue?: unknown) {
   const color = label.toLowerCase() === "credit" ? "#15803d" : "#b91c1c";
   const sign = label.toLowerCase() === "credit" ? "+" : "-";
-  const dateStr = new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+  const dateStr = fmtDate(dateValue);
   const rowHtml = Object.entries(rows)
     .filter(([, v]) => v && v !== "undefined")
     .map(([k, v]) => `<tr><td style="padding:6px 0;color:#64748b;font-size:13px">${k}</td><td style="padding:6px 0;color:#0f172a;font-size:13px;text-align:right">${v}</td></tr>`)
@@ -41,6 +52,21 @@ function alertBlock(label: string, amount: unknown, rows: Record<string, string>
       <tr><td style="padding:6px 0;color:#64748b;font-size:13px">Date</td><td style="padding:6px 0;color:#0f172a;font-size:13px;text-align:right">${dateStr}</td></tr>
     </table>
   </div>`;
+}
+
+function bankingRows(d: Record<string, unknown>, fallbackDescription: string) {
+  const rows: Record<string, string> = {
+    Description: safe(d.description ?? d.memo, fallbackDescription),
+  };
+  if (d.from) rows.From = safe(d.from);
+  if (d.to) rows.To = safe(d.to);
+  if (d.recipient) rows.Recipient = safe(d.recipient);
+  if (d.sender) rows.Sender = safe(d.sender);
+  if (d.adminName || d.adminEmail) rows["Posted by"] = safe(d.adminName ?? d.adminEmail);
+  if (d.accountType || d.accountLast4) rows.Account = `${safe(d.accountType, "Account")} ${d.accountLast4 ? `••••${safe(d.accountLast4)}` : ""}`.trim();
+  if (d.reference) rows.Reference = safe(d.reference);
+  if (d.balanceAfter !== undefined && d.balanceAfter !== null) rows["New balance"] = fmtMoney(d.balanceAfter);
+  return rows;
 }
 
 function build(name: string, d: Record<string, unknown>): Tpl {
@@ -110,13 +136,13 @@ function build(name: string, d: Record<string, unknown>): Tpl {
       return {
         subject: "Transfer submitted for review",
         intro: `Hello ${who},`,
-        body: `Your transfer of ${d.amount} to ${d.recipient ?? "the recipient"} has been received and is pending admin review. We will email you once it has been processed. For help, contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.`,
+        body: `Your transfer of ${fmtMoney(d.amount)} to ${safe(d.recipient, "the recipient")} has been received and is pending admin review.${alertBlock("Debit", d.amount, bankingRows(d, "Transfer pending review"), d.date)}We will email you once it has been processed. For help, contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.`,
       };
     case "transfer-approved":
       return {
         subject: `Debit alert: ${fmtMoney(d.amount)}`,
         intro: `Hello ${who},`,
-        body: `Your account has been debited.${alertBlock("Debit", d.amount, { Recipient: String(d.recipient ?? "Recipient"), Description: String(d.description ?? d.memo ?? "Transfer") })}If this transaction was not authorized by you, contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> immediately.`,
+        body: `Your account has been debited.${alertBlock("Debit", d.amount, bankingRows(d, "External transfer"), d.date)}If this transaction was not authorized by you, contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> immediately.`,
       };
     case "transfer-rejected":
       return {
@@ -128,13 +154,13 @@ function build(name: string, d: Record<string, unknown>): Tpl {
       return {
         subject: `Debit alert: ${fmtMoney(d.amount)}`,
         intro: `Hello ${who},`,
-        body: `Your account has been debited.${alertBlock("Debit", d.amount, { Recipient: String(d.to ?? "Recipient"), Description: String(d.description ?? d.memo ?? "Outgoing transfer") })}If this transaction was not authorized by you, contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> immediately.`,
+        body: `Your account has been debited.${alertBlock("Debit", d.amount, bankingRows(d, "Outgoing transfer"), d.date)}If this transaction was not authorized by you, contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> immediately.`,
       };
     case "transfer-received":
       return {
         subject: `Credit alert: ${fmtMoney(d.amount)}`,
         intro: `Hello ${who},`,
-        body: `Your account has been credited.${alertBlock("Credit", d.amount, { Sender: String(d.from ?? "Sender"), Description: String(d.description ?? d.memo ?? "Incoming transfer") })}Sign in to your dashboard to view your updated balance.`,
+        body: `Your account has been credited.${alertBlock("Credit", d.amount, bankingRows(d, "Incoming transfer"), d.date)}Sign in to your dashboard to view your updated balance.`,
       };
     case "transaction-reversed":
       return {
@@ -148,23 +174,25 @@ function build(name: string, d: Record<string, unknown>): Tpl {
       return {
         subject: isCredit ? `Credit alert: ${fmtMoney(Math.abs(amt))}` : `Debit alert: ${fmtMoney(Math.abs(amt))}`,
         intro: `Hello ${who},`,
-        body: `Your account has been ${isCredit ? "credited" : "debited"}.${alertBlock(isCredit ? "Credit" : "Debit", Math.abs(amt), { Description: String(d.description ?? "Account adjustment") })}If you do not recognize this transaction, contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.`,
+        body: `Your account has been ${isCredit ? "credited" : "debited"}.${alertBlock(isCredit ? "Credit" : "Debit", Math.abs(amt), bankingRows(d, "Admin account adjustment"), d.date)}If you do not recognize this transaction, contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.`,
       };
     }
     case "deposit-requested":
-      return { subject: "Deposit submitted", intro: `Hello ${who},`, body: `Your deposit request of ${d.amount} is awaiting review.` };
+      return { subject: "Deposit submitted", intro: `Hello ${who},`, body: `Your deposit request of ${fmtMoney(d.amount)} is awaiting review.${alertBlock("Credit", d.amount, bankingRows(d, "Deposit request"), d.date)}` };
     case "deposit-approved":
-      return { subject: "Deposit approved", intro: `Hello ${who},`, body: `Your deposit of ${fmtMoney(d.amount)} has been credited to your account.` };
+      return { subject: `Credit alert: ${fmtMoney(d.amount)}`, intro: `Hello ${who},`, body: `Your deposit has been credited to your account.${alertBlock("Credit", d.amount, bankingRows(d, "Approved deposit"), d.date)}` };
     case "deposit-rejected":
-      return { subject: "Deposit declined", intro: `Hello ${who},`, body: `Your deposit was declined. ${d.reason ?? ""}` };
+      return { subject: "Deposit declined", intro: `Hello ${who},`, body: `Your deposit request of ${fmtMoney(d.amount)} was declined. Reason: ${safe(d.reason, "Please contact support.")}` };
     case "withdrawal-approved":
-      return { subject: "Withdrawal approved", intro: `Hello ${who},`, body: `Your withdrawal of ${fmtMoney(d.amount)} has been processed.` };
+      return { subject: `Debit alert: ${fmtMoney(d.amount)}`, intro: `Hello ${who},`, body: `Your withdrawal has been processed.${alertBlock("Debit", d.amount, bankingRows(d, "Approved withdrawal"), d.date)}` };
     case "withdrawal-rejected":
-      return { subject: "Withdrawal declined", intro: `Hello ${who},`, body: `Your withdrawal was declined. ${d.reason ?? ""}` };
+      return { subject: "Withdrawal declined", intro: `Hello ${who},`, body: `Your withdrawal request of ${fmtMoney(d.amount)} was declined. Reason: ${safe(d.reason, "Please contact support.")}` };
     case "loan-approved":
-      return { subject: "Loan approved", intro: `Hello ${who},`, body: `Your loan request of ${fmtMoney(d.amount)} has been approved and disbursed.` };
+      return { subject: `Credit alert: ${fmtMoney(d.amount)}`, intro: `Hello ${who},`, body: `Your loan has been approved and disbursed.${alertBlock("Credit", d.amount, bankingRows(d, "Loan disbursement"), d.date)}` };
     case "loan-rejected":
       return { subject: "Loan declined", intro: `Hello ${who},`, body: `Your loan request was not approved. ${d.reason ?? ""}` };
+    case "bill-scheduled":
+      return { subject: "Bill payment scheduled", intro: `Hello ${who},`, body: `Your bill payment has been scheduled.${alertBlock("Debit", d.amount, { Payee: safe(d.payee), Description: "Bill payment", "Scheduled date": safe(d.date) }, d.date)}` };
     case "account-frozen":
       return { subject: "Account frozen", intro: `Hello ${who},`, body: `Your account has been frozen by an administrator. ${d.reason ?? ""} Please contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.` };
     case "account-unfrozen":
