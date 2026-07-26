@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { fmtMoney } from "@/lib/format";
 
@@ -17,6 +18,7 @@ type Account = { id: string; account_number: string; account_type: string; balan
 export default function AdminUsers() {
   const [list, setList] = useState<Profile[]>([]);
   const [q, setQ] = useState("");
+  const [selected, setSelected] = useState<Profile | null>(null);
   const [open, setOpen] = useState<Profile | null>(null);
   const [reason, setReason] = useState("");
   const [adjustAmount, setAdjustAmount] = useState("");
@@ -39,15 +41,14 @@ export default function AdminUsers() {
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "accounts" }, () => {
         load();
-        if (open) openUser(open);
+        if (selected) loadAccounts(selected);
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [load, open]);
+  }, [load, selected]);
 
-  const openUser = async (p: Profile) => {
-    setOpen(p); setReason(p.kyc_reason ?? ""); setAdjustAmount(""); setAdjustNote("");
+  const loadAccounts = async (p: Profile, reset = false) => {
     setAccountsLoading(true);
     const { data, error } = await supabase.from("accounts").select("id, account_number, account_type, balance").eq("user_id", p.id).order("created_at");
     setAccountsLoading(false);
@@ -56,7 +57,19 @@ export default function AdminUsers() {
       return toast.error("Could not load user accounts: " + error.message);
     }
     setAccounts((data as Account[]) ?? []);
-    setAdjustAcc(data?.[0]?.id ?? "");
+    setAdjustAcc((current) => data?.some((account) => account.id === current) && !reset ? current : data?.[0]?.id ?? "");
+  };
+
+  const selectUser = async (id: string) => {
+    const p = list.find((profile) => profile.id === id);
+    if (!p) return;
+    setSelected(p); setReason(p.kyc_reason ?? ""); setAdjustAmount(""); setAdjustNote("");
+    await loadAccounts(p, true);
+  };
+
+  const openUser = async (p: Profile) => {
+    setOpen(p); setSelected(p); setReason(p.kyc_reason ?? ""); setAdjustAmount(""); setAdjustNote("");
+    await loadAccounts(p, true);
   };
 
   const action = async (kind: string, action: string) => {
@@ -66,6 +79,7 @@ export default function AdminUsers() {
     toast.success("Done"); setOpen(null); load();
   };
   const creditDebit = async (sign: 1 | -1) => {
+    if (!selected) return toast.error("Select a user first");
     if (!adjustAcc) return toast.error("Create or select an account first");
     const amt = parseFloat(adjustAmount);
     if (!amt || amt <= 0) return toast.error("Enter a positive amount");
@@ -75,21 +89,24 @@ export default function AdminUsers() {
       body: { kind: "adjustment", id: adjustAcc, action: "approve", note: JSON.stringify({ amount: signed, description: adjustNote || (sign > 0 ? "Account credit" : "Account debit"), allow_negative: true }) },
     });
     setAdjusting(false);
-    if (error || (data as { error?: string })?.error) return toast.error((data as { error?: string })?.error ?? "Failed");
+    const result = data as { error?: string; email?: { ok?: boolean; error?: string } } | null;
+    if (error || result?.error) return toast.error(result?.error ?? "Failed");
+    if (result?.email?.ok === false) toast.warning(`Transaction posted, but email failed: ${result.email.error ?? "Resend rejected the email"}`);
     toast.success(sign > 0 ? "Account credited" : "Account debited"); setAdjustAmount(""); setAdjustNote("");
-    if (open) openUser(open);
+    if (selected) loadAccounts(selected);
   };
 
   const createAccounts = async () => {
-    if (!open) return;
+    const target = selected ?? open;
+    if (!target) return toast.error("Select a user first");
     setAccountsLoading(true);
-    const { error, data } = await supabase.functions.invoke("admin-action", { body: { kind: "accounts", id: open.id, action: "approve" } });
+    const { error, data } = await supabase.functions.invoke("admin-action", { body: { kind: "accounts", id: target.id, action: "approve" } });
     if (error || (data as { error?: string })?.error) {
       setAccountsLoading(false);
       return toast.error((data as { error?: string })?.error ?? "Could not create accounts");
     }
     toast.success("Checking and savings accounts are ready");
-    await openUser(open);
+    await loadAccounts(target, true);
   };
 
   const filtered = list.filter((p) => !q || p.email.includes(q.toLowerCase()) || p.full_name.toLowerCase().includes(q.toLowerCase()));
@@ -97,6 +114,55 @@ export default function AdminUsers() {
   return (
     <div className="container mx-auto p-4 md:p-8 max-w-5xl space-y-4">
       <h1 className="text-2xl font-bold">Users & KYC</h1>
+      <Card className="p-4 space-y-4 border-primary/30">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="font-semibold">Credit / Debit user</h2>
+            {selected && <p className="text-xs text-muted-foreground truncate">{selected.full_name} · {selected.email}</p>}
+          </div>
+          <Select value={selected?.id ?? ""} onValueChange={selectUser}>
+            <SelectTrigger className="w-full sm:w-72"><SelectValue placeholder="Select user" /></SelectTrigger>
+            <SelectContent>
+              {list.map((p) => <SelectItem key={p.id} value={p.id}>{p.full_name} · {p.email}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {!selected ? (
+          <div className="p-4 text-sm text-muted-foreground border rounded-md">Select a user to credit or debit their account.</div>
+        ) : accountsLoading ? (
+          <div className="p-4 text-sm text-muted-foreground border rounded-md">Loading accounts…</div>
+        ) : accounts.length === 0 ? (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border rounded-md">
+            <div className="text-sm text-muted-foreground">No accounts found for this user.</div>
+            <Button size="sm" variant="outline" onClick={createAccounts}>Create accounts</Button>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-3">
+            <div className="space-y-2">
+              <Label>Account</Label>
+              <Select value={adjustAcc} onValueChange={setAdjustAcc}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.account_type} •••{a.account_number.slice(-4)} · {fmtMoney(a.balance)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Amount</Label>
+              <Input type="number" step="0.01" min="0.01" placeholder="0.00" value={adjustAmount} onChange={(e) => setAdjustAmount(e.target.value)} />
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <Label>Description</Label>
+              <Input placeholder="Wire credit, fee debit, refund, manual correction" value={adjustNote} onChange={(e) => setAdjustNote(e.target.value)} />
+            </div>
+            <div className="md:col-span-2 flex flex-col sm:flex-row gap-2">
+              <Button disabled={adjusting} onClick={() => creditDebit(1)} className="flex-1">Credit user</Button>
+              <Button disabled={adjusting} variant="destructive" onClick={() => creditDebit(-1)} className="flex-1">Debit user</Button>
+            </div>
+          </div>
+        )}
+      </Card>
       <Input placeholder="Search by name or email" value={q} onChange={(e) => setQ(e.target.value)} />
       <Card className="divide-y">
         {filtered.length === 0 ? (
@@ -109,9 +175,9 @@ export default function AdminUsers() {
               <div className="text-xs text-muted-foreground truncate">{p.email}</div>
             </div>
             <Badge variant={p.kyc_status === "approved" ? "default" : p.kyc_status === "pending" ? "secondary" : "destructive"} className="capitalize">{p.kyc_status}</Badge>
-            <Dialog open={open?.id === p.id} onOpenChange={(o) => !o && setOpen(null)}>
-              <DialogTrigger asChild><Button size="sm" variant="outline" onClick={() => openUser(p)}>Manage / Credit</Button></DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <Dialog open={open?.id === p.id} onOpenChange={(o) => !o && setOpen(null)}>
+                <DialogTrigger asChild><Button size="sm" variant="outline" onClick={() => openUser(p)}>Manage</Button></DialogTrigger>
+                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>{p.full_name}</DialogTitle></DialogHeader>
                 {p.avatar_url && <img src={p.avatar_url} alt="selfie" className="w-32 h-32 rounded-full object-cover mx-auto" />}
                 <div className="text-sm space-y-1">

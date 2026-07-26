@@ -9,11 +9,12 @@ export default function AdminOverview() {
   const [stats, setStats] = useState({ users: 0, pendingKyc: 0, pendingApprovals: 0, totalDeposits: 0 });
 
   const loadStats = useCallback(async () => {
-    const [u, k, tr, dr, lr, cr, ar, d] = await Promise.all([
+    const [u, k, tr, dr, wr, lr, cr, ar, d] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("kyc_status", "pending"),
       supabase.from("transfer_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("deposit_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("withdrawal_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("loan_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("card_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("atc_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
@@ -23,7 +24,7 @@ export default function AdminOverview() {
     setStats({
       users: u.count ?? 0,
       pendingKyc: k.count ?? 0,
-      pendingApprovals: [tr, dr, lr, cr, ar].reduce((sum, res) => sum + (res.count ?? 0), 0),
+      pendingApprovals: [tr, dr, wr, lr, cr, ar].reduce((sum, res) => sum + (res.count ?? 0), 0),
       totalDeposits: (d.data ?? []).reduce((s, r) => s + Number(r.amount), 0),
     });
   }, []);
@@ -36,6 +37,7 @@ export default function AdminOverview() {
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, loadStats)
       .on("postgres_changes", { event: "*", schema: "public", table: "transfer_requests" }, loadStats)
       .on("postgres_changes", { event: "*", schema: "public", table: "deposit_requests" }, loadStats)
+      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawal_requests" }, loadStats)
       .on("postgres_changes", { event: "*", schema: "public", table: "loan_requests" }, loadStats)
       .on("postgres_changes", { event: "*", schema: "public", table: "card_requests" }, loadStats)
       .on("postgres_changes", { event: "*", schema: "public", table: "atc_requests" }, loadStats)
