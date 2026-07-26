@@ -11,19 +11,21 @@ type Req = { id: string; user_id: string; amount: number; created_at: string; st
 export default function Approvals() {
   const [transfers, setTransfers] = useState<Req[]>([]);
   const [deposits, setDeposits] = useState<Req[]>([]);
+  const [withdrawals, setWithdrawals] = useState<Req[]>([]);
   const [loans, setLoans] = useState<Req[]>([]);
   const [cards, setCards] = useState<Req[]>([]);
   const [atcs, setAtcs] = useState<Req[]>([]);
 
   const load = useCallback(async () => {
-    const [t, d, l, c, a] = await Promise.all([
+    const [t, d, w, l, c, a] = await Promise.all([
       supabase.from("transfer_requests").select("*").eq("status", "pending").order("created_at"),
       supabase.from("deposit_requests").select("*").eq("status", "pending").order("created_at"),
+      supabase.from("withdrawal_requests").select("*").eq("status", "pending").order("created_at"),
       supabase.from("loan_requests").select("*").eq("status", "pending").order("created_at"),
       supabase.from("card_requests").select("*").eq("status", "pending").order("created_at"),
       supabase.from("atc_requests").select("*").eq("status", "pending").order("created_at"),
     ]);
-    setTransfers((t.data as Req[]) ?? []); setDeposits((d.data as Req[]) ?? []); setLoans((l.data as Req[]) ?? []); setCards((c.data as Req[]) ?? []); setAtcs((a.data as Req[]) ?? []);
+    setTransfers((t.data as Req[]) ?? []); setDeposits((d.data as Req[]) ?? []); setWithdrawals((w.data as Req[]) ?? []); setLoans((l.data as Req[]) ?? []); setCards((c.data as Req[]) ?? []); setAtcs((a.data as Req[]) ?? []);
   }, []);
   useEffect(() => {
     load();
@@ -32,6 +34,7 @@ export default function Approvals() {
       .channel("admin-approvals-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "transfer_requests" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "deposit_requests" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawal_requests" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "loan_requests" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "card_requests" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "atc_requests" }, load)
@@ -74,12 +77,14 @@ export default function Approvals() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="transfers">Transfers ({transfers.length})</TabsTrigger>
           <TabsTrigger value="deposits">Deposits ({deposits.length})</TabsTrigger>
+          <TabsTrigger value="withdrawals">Withdrawals ({withdrawals.length})</TabsTrigger>
           <TabsTrigger value="loans">Loans ({loans.length})</TabsTrigger>
           <TabsTrigger value="cards">Cards ({cards.length})</TabsTrigger>
           <TabsTrigger value="atc">ATC ({atcs.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="transfers">{renderList(transfers, "transfer")}</TabsContent>
         <TabsContent value="deposits">{renderList(deposits, "deposit")}</TabsContent>
+        <TabsContent value="withdrawals">{renderList(withdrawals, "withdrawal")}</TabsContent>
         <TabsContent value="loans">{renderList(loans, "loan")}</TabsContent>
         <TabsContent value="cards">{renderList(cards, "card")}</TabsContent>
         <TabsContent value="atc">{renderList(atcs, "atc")}</TabsContent>
