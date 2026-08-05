@@ -176,51 +176,72 @@ export default function AdminUsers() {
             </div>
             <Badge variant={p.kyc_status === "approved" ? "default" : p.kyc_status === "pending" ? "secondary" : "destructive"} className="capitalize">{p.kyc_status}</Badge>
               <Dialog open={open?.id === p.id} onOpenChange={(o) => !o && setOpen(null)}>
-                <DialogTrigger asChild><Button size="sm" variant="outline" onClick={() => openUser(p)}>Manage</Button></DialogTrigger>
+                <DialogTrigger asChild><Button size="sm" variant="outline" onClick={() => openUser(p)}>Manage / Credit</Button></DialogTrigger>
                 <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>{p.full_name}</DialogTitle></DialogHeader>
-                {p.avatar_url && <img src={p.avatar_url} alt="selfie" className="w-32 h-32 rounded-full object-cover mx-auto" />}
+                {p.avatar_url && <img src={p.avatar_url} alt="selfie" className="w-24 h-24 rounded-full object-cover mx-auto" />}
                 <div className="text-sm space-y-1">
                   <div><b>Email:</b> {p.email}</div>
                   <div><b>Phone:</b> {p.phone ?? "—"}</div>
                   <div><b>Status:</b> {p.kyc_status}</div>
                 </div>
-                <div>
-                  <Label>Reason / note</Label>
-                  <Textarea value={reason} onChange={(e) => setReason(e.target.value)} />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" onClick={() => action("kyc", "approve")}>Approve KYC</Button>
-                  <Button size="sm" variant="destructive" onClick={() => action("kyc", "reject")}>Reject</Button>
-                  <Button size="sm" variant="outline" onClick={() => action("freeze", "freeze")}>Freeze</Button>
-                  <Button size="sm" variant="outline" onClick={() => action("freeze", "unfreeze")}>Unfreeze</Button>
-                </div>
-                <div className="border-t pt-3 space-y-2">
+
+                <div className="rounded-lg border border-primary/40 bg-primary/5 p-3 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <div className="font-semibold text-sm">Credit / Debit account</div>
-                      <div className="text-xs text-muted-foreground">Post a real transaction and email the user via Resend.</div>
+                      <div className="text-xs text-muted-foreground">Posts a real transaction and emails the customer instantly.</div>
                     </div>
                     {accounts.length === 0 && !accountsLoading && <Button size="sm" variant="outline" onClick={createAccounts}>Create accounts</Button>}
                   </div>
                   {accountsLoading ? (
-                    <div className="p-3 text-sm text-muted-foreground border rounded-md">Loading accounts…</div>
+                    <div className="p-3 text-sm text-muted-foreground border rounded-md bg-background">Loading accounts…</div>
                   ) : accounts.length === 0 ? (
-                    <div className="p-3 text-sm text-muted-foreground border rounded-md">No accounts found for this user yet. Create accounts, then use Credit or Debit.</div>
+                    <div className="p-3 text-sm text-muted-foreground border rounded-md bg-background">No accounts yet. Click “Create accounts”, then credit or debit.</div>
                   ) : (
-                    <>
-                      <select className="w-full border rounded p-2 text-sm bg-background" value={adjustAcc} onChange={(e) => setAdjustAcc(e.target.value)}>
-                        {accounts.map((a) => <option key={a.id} value={a.id}>{a.account_type} •••{a.account_number.slice(-4)} ({fmtMoney(a.balance)})</option>)}
-                      </select>
-                      <Input type="number" step="0.01" min="0" placeholder="Amount" value={adjustAmount} onChange={(e) => setAdjustAmount(e.target.value)} />
-                      <Input placeholder="Description (e.g. wire credit, fee debit)" value={adjustNote} onChange={(e) => setAdjustNote(e.target.value)} />
-                      <div className="flex gap-2">
-                        <Button size="sm" disabled={adjusting} onClick={() => creditDebit(1)}>Credit</Button>
-                        <Button size="sm" disabled={adjusting} variant="destructive" onClick={() => creditDebit(-1)}>Debit</Button>
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Account</Label>
+                        <Select value={adjustAcc} onValueChange={setAdjustAcc}>
+                          <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.account_type} •••{a.account_number.slice(-4)} · {fmtMoney(a.balance)}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Amount (USD)</Label>
+                        <Input className="bg-background" type="number" step="0.01" min="0.01" placeholder="0.00" value={adjustAmount} onChange={(e) => setAdjustAmount(e.target.value)} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Description / narration</Label>
+                        <Textarea
+                          className="bg-background min-h-[70px]"
+                          placeholder="e.g. Incoming wire transfer from Chase Bank ref 88213 — payroll deposit"
+                          value={adjustNote}
+                          onChange={(e) => setAdjustNote(e.target.value)}
+                        />
+                        <p className="text-[11px] text-muted-foreground">This text appears on the customer’s statement and in the email alert, along with date, time, reference and new balance.</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button className="flex-1" disabled={adjusting} onClick={() => creditDebit(1)}>{adjusting ? "Posting…" : "Credit user"}</Button>
+                        <Button className="flex-1" disabled={adjusting} variant="destructive" onClick={() => creditDebit(-1)}>{adjusting ? "Posting…" : "Debit user"}</Button>
+                      </div>
+                    </div>
                   )}
                 </div>
+
+                <div className="border-t pt-3 space-y-2">
+                  <Label>KYC reason / note</Label>
+                  <Textarea value={reason} onChange={(e) => setReason(e.target.value)} />
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => action("kyc", "approve")}>Approve KYC</Button>
+                    <Button size="sm" variant="destructive" onClick={() => action("kyc", "reject")}>Reject</Button>
+                    <Button size="sm" variant="outline" onClick={() => action("freeze", "freeze")}>Freeze</Button>
+                    <Button size="sm" variant="outline" onClick={() => action("freeze", "unfreeze")}>Unfreeze</Button>
+                  </div>
+                </div>
+
               </DialogContent>
             </Dialog>
           </div>
