@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,23 +11,59 @@ import logoImg from "@/assets/logo.png";
 
 export default function ResetPassword() {
   const nav = useNavigate();
+  const [params] = useSearchParams();
   const [ready, setReady] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // Supabase recovery links arrive with tokens in the URL hash (#access_token=...&type=recovery)
-    // detectSessionInUrl picks them up automatically and fires PASSWORD_RECOVERY.
+    let done = false;
+    const finish = () => { if (!done) { done = true; setReady(true); } };
+
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") finish();
     });
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
+
+    (async () => {
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const errDesc = params.get("error_description") ?? hash.get("error_description");
+      if (errDesc) { setLinkError(errDesc); return; }
+
+      // 1) Our own emails: ?token_hash=...&type=recovery
+      const tokenHash = params.get("token_hash") ?? params.get("token");
+      if (tokenHash) {
+        const { error } = await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
+        if (error) { setLinkError("This reset link is invalid or has expired. Please request a new one."); return; }
+        finish();
+        return;
+      }
+
+      // 2) PKCE style: ?code=...
+      const code = params.get("code");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) { setLinkError("This reset link is invalid or has expired. Please request a new one."); return; }
+        finish();
+        return;
+      }
+
+      // 3) Implicit style: #access_token=...&type=recovery (handled by detectSessionInUrl)
+      const { data } = await supabase.auth.getSession();
+      if (data.session) { finish(); return; }
+
+      setTimeout(async () => {
+        const { data: again } = await supabase.auth.getSession();
+        if (again.session) finish();
+        else setLinkError("This reset link is invalid or has expired. Please request a new one.");
+      }, 1500);
+    })();
+
     return () => sub.subscription.unsubscribe();
   }, []);
+
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
