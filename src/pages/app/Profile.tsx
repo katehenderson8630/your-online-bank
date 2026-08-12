@@ -32,7 +32,7 @@ export default function Profile() {
   // Backfill a missing phone/address on the profile row from signup metadata.
   useEffect(() => {
     if (!profile) return;
-    const patch: Record<string, string> = {};
+    const patch: { phone?: string; address?: string } = {};
     if (!profile.phone && meta.phone) patch.phone = meta.phone;
     if (!(profile as { address?: string }).address && meta.address) patch.address = meta.address;
     if (Object.keys(patch).length === 0) return;
