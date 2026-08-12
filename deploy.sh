@@ -17,7 +17,6 @@
 set -euo pipefail
 
 PROJECT_REF="octvuctmhszbtyhixxwd"
-SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jdHZ1Y3RtaHN6YnR5aGl4eHdkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzIzNzg2NiwiZXhwIjoyMDk4ODEzODY2fQ.ylpRgDw9OYvjQq7h5OaTXTt0x8bVhubodMyLLFV-udY"
 
 if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
   echo "ERROR: export SUPABASE_ACCESS_TOKEN=sbp_xxx  (get one at https://supabase.com/dashboard/account/tokens)"
@@ -27,6 +26,10 @@ if [ -z "${RESEND_API_KEY:-}" ]; then
   echo "ERROR: export RESEND_API_KEY=re_xxx  (get one at https://resend.com/api-keys)"
   exit 1
 fi
+if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+  echo "ERROR: export SUPABASE_SERVICE_ROLE_KEY with your project's service role key"
+  exit 1
+fi
 
 echo "==> Linking to project $PROJECT_REF"
 supabase link --project-ref "$PROJECT_REF"
@@ -34,7 +37,7 @@ supabase link --project-ref "$PROJECT_REF"
 echo "==> Setting function secrets"
 supabase secrets set \
   RESEND_API_KEY="$RESEND_API_KEY" \
-  SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
+  SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY" \
   --project-ref "$PROJECT_REF"
 
 echo "==> Deploying public (no-JWT) functions"
