@@ -118,6 +118,9 @@ export default function Profile() {
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-lg truncate">{profile?.full_name}</div>
           <div className="text-sm text-muted-foreground truncate">{profile?.email}</div>
+          {(profile?.phone ?? meta.phone) && (
+            <div className="text-sm text-muted-foreground truncate">{profile?.phone ?? meta.phone}</div>
+          )}
           <Badge variant={statusVariant} className="mt-2 capitalize">KYC: {status}</Badge>
         </div>
       </Card>
