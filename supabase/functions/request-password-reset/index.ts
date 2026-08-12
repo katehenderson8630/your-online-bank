@@ -6,14 +6,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const CANONICAL_APP_ORIGIN = "https://Lyncrestdigital.online";
+const CANONICAL_APP_ORIGIN = "https://lyncrestdigital.online";
 const RESET_PATH = "/reset-password";
 
-function resetRedirectUrl(raw?: string) {
+// Build the page the user lands on. We keep the caller's origin when it is a valid
+// http(s) URL (preview/localhost included) so the link never points at a dead host.
+function resetPageUrl(raw?: string) {
   try {
     const parsed = new URL(raw ?? "", CANONICAL_APP_ORIGIN);
-    parsed.protocol = "https:";
-    parsed.hostname = "Lyncrestdigital.online";
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("bad protocol");
+    parsed.hostname = parsed.hostname.toLowerCase();
     parsed.pathname = RESET_PATH;
     parsed.search = "";
     parsed.hash = "";
@@ -23,22 +25,13 @@ function resetRedirectUrl(raw?: string) {
   }
 }
 
-function forceResetRedirect(actionLink: string, redirectTo: string) {
-  try {
-    const parsed = new URL(actionLink);
-    parsed.searchParams.set("redirect_to", redirectTo);
-    return parsed.toString();
-  } catch {
-    return actionLink;
-  }
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const { email, redirectTo } = (await req.json()) as { email?: string; redirectTo?: string };
     if (!email) return json({ error: "email required" }, 400);
-    const safeRedirectTo = resetRedirectUrl(redirectTo);
+    const resetPage = resetPageUrl(redirectTo);
 
     const url = Deno.env.get("SUPABASE_URL");
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -49,7 +42,7 @@ Deno.serve(async (req) => {
     const { data, error } = await admin.auth.admin.generateLink({
       type: "recovery",
       email,
-      options: { redirectTo: safeRedirectTo },
+      options: { redirectTo: resetPage },
     });
 
     if (error) {
@@ -57,12 +50,18 @@ Deno.serve(async (req) => {
       return json({ error: error.message }, 500);
     }
 
-    // Keep this response generic only when the address has no usable recovery link.
-    if (!data?.properties?.action_link) {
+    const hashedToken = data?.properties?.hashed_token;
+    if (!hashedToken && !data?.properties?.action_link) {
       return json({ ok: true });
     }
 
-    const actionLink = forceResetRedirect(data.properties.action_link, safeRedirectTo);
+    // Point straight at our own page with the OTP token. The app verifies it itself,
+    // which avoids the Supabase redirect landing on a blank page when the hash is
+    // stripped or the redirect host does not match the deployed app.
+    const actionLink = hashedToken
+      ? `${resetPage}?token_hash=${encodeURIComponent(hashedToken)}&type=recovery`
+      : (data!.properties!.action_link as string);
+
     const { data: prof } = await admin
       .from("profiles")
       .select("full_name")

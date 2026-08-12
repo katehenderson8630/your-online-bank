@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,13 +11,34 @@ import { Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Profile() {
-  const { profile, refreshProfile, signOut } = useAuth();
-  const [fullName, setFullName] = useState(profile?.full_name ?? "");
-  const [phone, setPhone] = useState(profile?.phone ?? "");
-  const [address, setAddress] = useState((profile as { address?: string } | null)?.address ?? "");
+  const { user, profile, refreshProfile, signOut } = useAuth();
+  const meta = (user?.user_metadata ?? {}) as { phone?: string; address?: string; full_name?: string };
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Profile loads asynchronously — keep the form fields in sync once it arrives,
+  // falling back to the details captured at signup (stored in auth metadata).
+  useEffect(() => {
+    if (!profile && !user) return;
+    setFullName(profile?.full_name ?? meta.full_name ?? "");
+    setPhone(profile?.phone ?? meta.phone ?? "");
+    setAddress((profile as { address?: string } | null)?.address ?? meta.address ?? "");
+  }, [profile, user]);
+
+  // Backfill a missing phone/address on the profile row from signup metadata.
+  useEffect(() => {
+    if (!profile) return;
+    const patch: { phone?: string; address?: string } = {};
+    if (!profile.phone && meta.phone) patch.phone = meta.phone;
+    if (!(profile as { address?: string }).address && meta.address) patch.address = meta.address;
+    if (Object.keys(patch).length === 0) return;
+    supabase.from("profiles").update(patch).eq("id", profile.id).then(() => refreshProfile());
+  }, [profile?.id]);
+
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +118,9 @@ export default function Profile() {
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-lg truncate">{profile?.full_name}</div>
           <div className="text-sm text-muted-foreground truncate">{profile?.email}</div>
+          {(profile?.phone ?? meta.phone) && (
+            <div className="text-sm text-muted-foreground truncate">{profile?.phone ?? meta.phone}</div>
+          )}
           <Badge variant={statusVariant} className="mt-2 capitalize">KYC: {status}</Badge>
         </div>
       </Card>
