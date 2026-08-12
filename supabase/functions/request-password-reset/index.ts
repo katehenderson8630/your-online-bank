@@ -6,14 +6,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const CANONICAL_APP_ORIGIN = "https://Lyncrestdigital.online";
+const CANONICAL_APP_ORIGIN = "https://lyncrestdigital.online";
 const RESET_PATH = "/reset-password";
 
-function resetRedirectUrl(raw?: string) {
+// Build the page the user lands on. We keep the caller's origin when it is a valid
+// http(s) URL (preview/localhost included) so the link never points at a dead host.
+function resetPageUrl(raw?: string) {
   try {
     const parsed = new URL(raw ?? "", CANONICAL_APP_ORIGIN);
-    parsed.protocol = "https:";
-    parsed.hostname = "Lyncrestdigital.online";
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("bad protocol");
+    parsed.hostname = parsed.hostname.toLowerCase();
     parsed.pathname = RESET_PATH;
     parsed.search = "";
     parsed.hash = "";
@@ -23,15 +25,6 @@ function resetRedirectUrl(raw?: string) {
   }
 }
 
-function forceResetRedirect(actionLink: string, redirectTo: string) {
-  try {
-    const parsed = new URL(actionLink);
-    parsed.searchParams.set("redirect_to", redirectTo);
-    return parsed.toString();
-  } catch {
-    return actionLink;
-  }
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
