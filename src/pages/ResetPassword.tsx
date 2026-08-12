@@ -91,7 +91,12 @@ export default function ResetPassword() {
         <h1 className="text-xl font-semibold mb-1">Set a new password</h1>
         <p className="text-sm text-muted-foreground mb-4">Choose a strong password you haven't used before.</p>
 
-        {!ready ? (
+        {linkError ? (
+          <div className="space-y-3">
+            <p className="text-sm text-destructive">{linkError}</p>
+            <Button className="w-full" onClick={() => nav("/auth?mode=forgot", { replace: true })}>Request a new reset link</Button>
+          </div>
+        ) : !ready ? (
           <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Verifying reset link…</div>
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
