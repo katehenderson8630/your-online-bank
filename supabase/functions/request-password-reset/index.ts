@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
   try {
     const { email, redirectTo } = (await req.json()) as { email?: string; redirectTo?: string };
     if (!email) return json({ error: "email required" }, 400);
-    const safeRedirectTo = resetRedirectUrl(redirectTo);
+    const resetPage = resetPageUrl(redirectTo);
 
     const url = Deno.env.get("SUPABASE_URL");
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     const { data, error } = await admin.auth.admin.generateLink({
       type: "recovery",
       email,
-      options: { redirectTo: safeRedirectTo },
+      options: { redirectTo: resetPage },
     });
 
     if (error) {
@@ -50,12 +50,18 @@ Deno.serve(async (req) => {
       return json({ error: error.message }, 500);
     }
 
-    // Keep this response generic only when the address has no usable recovery link.
-    if (!data?.properties?.action_link) {
+    const hashedToken = data?.properties?.hashed_token;
+    if (!hashedToken && !data?.properties?.action_link) {
       return json({ ok: true });
     }
 
-    const actionLink = forceResetRedirect(data.properties.action_link, safeRedirectTo);
+    // Point straight at our own page with the OTP token. The app verifies it itself,
+    // which avoids the Supabase redirect landing on a blank page when the hash is
+    // stripped or the redirect host does not match the deployed app.
+    const actionLink = hashedToken
+      ? `${resetPage}?token_hash=${encodeURIComponent(hashedToken)}&type=recovery`
+      : (data!.properties!.action_link as string);
+
     const { data: prof } = await admin
       .from("profiles")
       .select("full_name")
