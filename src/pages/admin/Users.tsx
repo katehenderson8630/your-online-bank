@@ -8,12 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { fmtMoney } from "@/lib/format";
 
 type Profile = { id: string; email: string; full_name: string; phone: string | null; avatar_url: string | null; kyc_status: string; kyc_reason: string | null };
 type Account = { id: string; account_number: string; account_type: string; balance: number };
+
+const localNow = () => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 export default function AdminUsers() {
   const [list, setList] = useState<Profile[]>([]);
@@ -26,10 +33,24 @@ export default function AdminUsers() {
   const [adjustAcc, setAdjustAcc] = useState("");
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
+  const [useNow, setUseNow] = useState(true);
+  const [postedAt, setPostedAt] = useState(localNow());
 
   const load = useCallback(async () => {
     const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
     setList((data as Profile[]) ?? []);
+  }, []);
+
+  const loadAccounts = useCallback(async (p: Profile, reset = false) => {
+    const { data, error } = await supabase.from("accounts").select("id, account_number, account_type, balance").eq("user_id", p.id).order("created_at");
+    if (error) {
+      toast.error("Could not load user accounts: " + error.message);
+      return [] as Account[];
+    }
+    const rows = (data as Account[]) ?? [];
+    setAccounts(rows);
+    setAdjustAcc((current) => (!reset && rows.some((a) => a.id === current) ? current : rows[0]?.id ?? ""));
+    return rows;
   }, []);
 
   useEffect(() => {
@@ -45,32 +66,34 @@ export default function AdminUsers() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [load, open]);
-
-  const loadAccounts = async (p: Profile, reset = false) => {
-    setAccountsLoading(true);
-    const { data, error } = await supabase.from("accounts").select("id, account_number, account_type, balance").eq("user_id", p.id).order("created_at");
-    setAccountsLoading(false);
-    if (error) {
-      setAccounts([]); setAdjustAcc("");
-      return toast.error("Could not load user accounts: " + error.message);
-    }
-    setAccounts((data as Account[]) ?? []);
-    setAdjustAcc((current) => data?.some((account) => account.id === current) && !reset ? current : data?.[0]?.id ?? "");
-  };
+  }, [load, loadAccounts, open]);
 
   const openUser = async (p: Profile) => {
     setOpen(p); setReason(p.kyc_reason ?? ""); setAdjustAmount(""); setAdjustNote("");
+    setUseNow(true); setPostedAt(localNow());
+    setAccountsLoading(true);
+    // Read what already exists first — the dialog is usable immediately.
+    const existing = await loadAccounts(p, true);
+    setAccountsLoading(false);
+    if (existing.length > 0) return;
+    // Only if the user has no accounts yet, ask the backend to create them.
     setAccountsLoading(true);
     const { error, data } = await supabase.functions.invoke("admin-action", {
       body: { kind: "accounts", id: p.id, action: "approve" },
     });
-    if (error || (data as { error?: string } | null)?.error) {
+    const result = data as { error?: string; accounts?: Account[] } | null;
+    if (error || result?.error) {
       setAccountsLoading(false);
-      setAccounts([]);
-      return toast.error((data as { error?: string } | null)?.error ?? "Could not prepare this user's accounts");
+      toast.error(result?.error ?? error?.message ?? "Could not prepare this user's accounts");
+      return;
     }
-    await loadAccounts(p, true);
+    if (result?.accounts?.length) {
+      setAccounts(result.accounts);
+      setAdjustAcc(result.accounts[0].id);
+    } else {
+      await loadAccounts(p, true);
+    }
+    setAccountsLoading(false);
   };
 
   const action = async (kind: string, action: string) => {
@@ -84,14 +107,30 @@ export default function AdminUsers() {
     if (!adjustAcc) return toast.error("No account is available for this user");
     const amt = parseFloat(adjustAmount);
     if (!amt || amt <= 0) return toast.error("Enter a positive amount");
+    let valueDate: string | null = null;
+    if (!useNow) {
+      const d = new Date(postedAt);
+      if (Number.isNaN(d.getTime())) return toast.error("Enter a valid date and time");
+      valueDate = d.toISOString();
+    }
     const signed = sign * Math.abs(amt);
     setAdjusting(true);
     const { error, data } = await supabase.functions.invoke("admin-action", {
-      body: { kind: "adjustment", id: adjustAcc, action: "approve", note: JSON.stringify({ amount: signed, description: adjustNote || (sign > 0 ? "Account credit" : "Account debit"), allow_negative: true }) },
+      body: {
+        kind: "adjustment",
+        id: adjustAcc,
+        action: "approve",
+        note: JSON.stringify({
+          amount: signed,
+          description: adjustNote || (sign > 0 ? "Account credit" : "Account debit"),
+          allow_negative: true,
+          posted_at: valueDate,
+        }),
+      },
     });
     setAdjusting(false);
     const result = data as { error?: string; email?: { ok?: boolean; error?: string } } | null;
-    if (error || result?.error) return toast.error(result?.error ?? "Failed");
+    if (error || result?.error) return toast.error(result?.error ?? error?.message ?? "Failed");
     if (result?.email?.ok === false) toast.warning(`Transaction posted, but email failed: ${result.email.error ?? "Resend rejected the email"}`);
     toast.success(sign > 0 ? "Account credited" : "Account debited"); setAdjustAmount(""); setAdjustNote("");
     loadAccounts(open);
@@ -141,10 +180,13 @@ export default function AdminUsers() {
                     <div className="font-semibold">Credit / Debit account</div>
                     <div className="text-xs text-muted-foreground">The customer receives an email containing the description, amount, date, reference, account, and new balance.</div>
                   </div>
-                  {accountsLoading ? (
+                  {accounts.length === 0 && accountsLoading ? (
                     <div className="p-3 text-sm text-muted-foreground border rounded-md">Preparing user accounts…</div>
                   ) : accounts.length === 0 ? (
-                    <div className="p-3 text-sm text-destructive border border-destructive/30 rounded-md">Accounts could not be loaded. Close this window and try Manage account again.</div>
+                    <div className="p-3 text-sm text-destructive border border-destructive/30 rounded-md space-y-2">
+                      <div>This user has no accounts yet.</div>
+                      <Button size="sm" variant="outline" onClick={() => open && openUser(open)}>Retry / create accounts</Button>
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       <div className="space-y-1.5">
@@ -169,6 +211,16 @@ export default function AdminUsers() {
                           onChange={(e) => setAdjustNote(e.target.value)}
                         />
                         <p className="text-[11px] text-muted-foreground">This text appears on the customer’s statement and in the email alert, along with date, time, reference and new balance.</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Value date &amp; time</Label>
+                        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Checkbox checked={useNow} onCheckedChange={(v) => { const on = v === true; setUseNow(on); if (!on) setPostedAt(localNow()); }} />
+                          Use current date &amp; time
+                        </label>
+                        {!useNow && (
+                          <Input className="bg-background" type="datetime-local" value={postedAt} onChange={(e) => setPostedAt(e.target.value)} />
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button className="flex-1" disabled={adjusting} onClick={() => creditDebit(1)}>{adjusting ? "Posting…" : "Credit"}</Button>
