@@ -211,6 +211,16 @@ export default function AdminUsers() {
                         />
                         <p className="text-[11px] text-muted-foreground">This text appears on the customer’s statement and in the email alert, along with date, time, reference and new balance.</p>
                       </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Value date &amp; time</Label>
+                        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Checkbox checked={useNow} onCheckedChange={(v) => { const on = v === true; setUseNow(on); if (!on) setPostedAt(localNow()); }} />
+                          Use current date &amp; time
+                        </label>
+                        {!useNow && (
+                          <Input className="bg-background" type="datetime-local" value={postedAt} onChange={(e) => setPostedAt(e.target.value)} />
+                        )}
+                      </div>
                       <div className="flex gap-2">
                         <Button className="flex-1" disabled={adjusting} onClick={() => creditDebit(1)}>{adjusting ? "Posting…" : "Credit"}</Button>
                         <Button className="flex-1" disabled={adjusting} variant="destructive" onClick={() => creditDebit(-1)}>{adjusting ? "Posting…" : "Debit"}</Button>
