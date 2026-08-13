@@ -167,10 +167,19 @@ Deno.serve(async (req) => {
       const description = parsed.description ?? (amt > 0 ? "Admin credit" : "Admin debit");
       const { data: txId, error } = await admin.rpc("post_transaction", { _account_id: id, _type: txType, _amount: Math.abs(amt), _description: description, _counterparty: adminEmail, _related_tx_id: null, _allow_negative: parsed.allow_negative ?? true });
       if (error) return json({ error: error.message }, 400);
+      // Optional manual value date/time supplied by the admin
+      let postedAt: string | null = null;
+      if (typeof parsed.posted_at === "string" && parsed.posted_at) {
+        const d = new Date(parsed.posted_at);
+        if (!Number.isNaN(d.getTime())) {
+          postedAt = d.toISOString();
+          if (typeof txId === "string") await admin.from("transactions").update({ created_at: postedAt }).eq("id", txId);
+        }
+      }
       const tx = await txDetails(admin, typeof txId === "string" ? txId : undefined);
-      const email = await emailUser(admin, acct.user_id, "balance-adjusted", withAdmin({ amount: amt, description, reference: tx?.reference ?? txId ?? id, balanceAfter: tx?.balance_after, accountType: acct.account_type, accountLast4: String(acct.account_number).slice(-4) }));
-      await log("balance_adjustment", { account_id: id, amount: amt, description, txId, email }, acct.user_id);
-      return json({ ok: true, txId, email });
+      const email = await emailUser(admin, acct.user_id, "balance-adjusted", { ...withAdmin({ amount: amt, description, reference: tx?.reference ?? txId ?? id, balanceAfter: tx?.balance_after, accountType: acct.account_type, accountLast4: String(acct.account_number).slice(-4) }), date: postedAt ?? now() });
+      await log("balance_adjustment", { account_id: id, amount: amt, description, txId, postedAt, email }, acct.user_id);
+      return json({ ok: true, txId, postedAt, email });
     }
 
     if (kind === "reverse") {
