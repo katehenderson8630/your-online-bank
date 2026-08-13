@@ -179,10 +179,13 @@ export default function AdminUsers() {
                     <div className="font-semibold">Credit / Debit account</div>
                     <div className="text-xs text-muted-foreground">The customer receives an email containing the description, amount, date, reference, account, and new balance.</div>
                   </div>
-                  {accountsLoading ? (
+                  {accounts.length === 0 && accountsLoading ? (
                     <div className="p-3 text-sm text-muted-foreground border rounded-md">Preparing user accounts…</div>
                   ) : accounts.length === 0 ? (
-                    <div className="p-3 text-sm text-destructive border border-destructive/30 rounded-md">Accounts could not be loaded. Close this window and try Manage account again.</div>
+                    <div className="p-3 text-sm text-destructive border border-destructive/30 rounded-md space-y-2">
+                      <div>This user has no accounts yet.</div>
+                      <Button size="sm" variant="outline" onClick={() => open && openUser(open)}>Retry / create accounts</Button>
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       <div className="space-y-1.5">
