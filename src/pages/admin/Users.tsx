@@ -15,6 +15,12 @@ import { fmtMoney } from "@/lib/format";
 type Profile = { id: string; email: string; full_name: string; phone: string | null; avatar_url: string | null; kyc_status: string; kyc_reason: string | null };
 type Account = { id: string; account_number: string; account_type: string; balance: number };
 
+const localNow = () => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 export default function AdminUsers() {
   const [list, setList] = useState<Profile[]>([]);
   const [q, setQ] = useState("");
@@ -26,10 +32,24 @@ export default function AdminUsers() {
   const [adjustAcc, setAdjustAcc] = useState("");
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
+  const [useNow, setUseNow] = useState(true);
+  const [postedAt, setPostedAt] = useState(localNow());
 
   const load = useCallback(async () => {
     const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
     setList((data as Profile[]) ?? []);
+  }, []);
+
+  const loadAccounts = useCallback(async (p: Profile, reset = false) => {
+    const { data, error } = await supabase.from("accounts").select("id, account_number, account_type, balance").eq("user_id", p.id).order("created_at");
+    if (error) {
+      toast.error("Could not load user accounts: " + error.message);
+      return [] as Account[];
+    }
+    const rows = (data as Account[]) ?? [];
+    setAccounts(rows);
+    setAdjustAcc((current) => (!reset && rows.some((a) => a.id === current) ? current : rows[0]?.id ?? ""));
+    return rows;
   }, []);
 
   useEffect(() => {
@@ -45,32 +65,34 @@ export default function AdminUsers() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [load, open]);
-
-  const loadAccounts = async (p: Profile, reset = false) => {
-    setAccountsLoading(true);
-    const { data, error } = await supabase.from("accounts").select("id, account_number, account_type, balance").eq("user_id", p.id).order("created_at");
-    setAccountsLoading(false);
-    if (error) {
-      setAccounts([]); setAdjustAcc("");
-      return toast.error("Could not load user accounts: " + error.message);
-    }
-    setAccounts((data as Account[]) ?? []);
-    setAdjustAcc((current) => data?.some((account) => account.id === current) && !reset ? current : data?.[0]?.id ?? "");
-  };
+  }, [load, loadAccounts, open]);
 
   const openUser = async (p: Profile) => {
     setOpen(p); setReason(p.kyc_reason ?? ""); setAdjustAmount(""); setAdjustNote("");
+    setUseNow(true); setPostedAt(localNow());
+    setAccountsLoading(true);
+    // Read what already exists first — the dialog is usable immediately.
+    const existing = await loadAccounts(p, true);
+    setAccountsLoading(false);
+    if (existing.length > 0) return;
+    // Only if the user has no accounts yet, ask the backend to create them.
     setAccountsLoading(true);
     const { error, data } = await supabase.functions.invoke("admin-action", {
       body: { kind: "accounts", id: p.id, action: "approve" },
     });
-    if (error || (data as { error?: string } | null)?.error) {
+    const result = data as { error?: string; accounts?: Account[] } | null;
+    if (error || result?.error) {
       setAccountsLoading(false);
-      setAccounts([]);
-      return toast.error((data as { error?: string } | null)?.error ?? "Could not prepare this user's accounts");
+      toast.error(result?.error ?? error?.message ?? "Could not prepare this user's accounts");
+      return;
     }
-    await loadAccounts(p, true);
+    if (result?.accounts?.length) {
+      setAccounts(result.accounts);
+      setAdjustAcc(result.accounts[0].id);
+    } else {
+      await loadAccounts(p, true);
+    }
+    setAccountsLoading(false);
   };
 
   const action = async (kind: string, action: string) => {
@@ -84,14 +106,30 @@ export default function AdminUsers() {
     if (!adjustAcc) return toast.error("No account is available for this user");
     const amt = parseFloat(adjustAmount);
     if (!amt || amt <= 0) return toast.error("Enter a positive amount");
+    let valueDate: string | null = null;
+    if (!useNow) {
+      const d = new Date(postedAt);
+      if (Number.isNaN(d.getTime())) return toast.error("Enter a valid date and time");
+      valueDate = d.toISOString();
+    }
     const signed = sign * Math.abs(amt);
     setAdjusting(true);
     const { error, data } = await supabase.functions.invoke("admin-action", {
-      body: { kind: "adjustment", id: adjustAcc, action: "approve", note: JSON.stringify({ amount: signed, description: adjustNote || (sign > 0 ? "Account credit" : "Account debit"), allow_negative: true }) },
+      body: {
+        kind: "adjustment",
+        id: adjustAcc,
+        action: "approve",
+        note: JSON.stringify({
+          amount: signed,
+          description: adjustNote || (sign > 0 ? "Account credit" : "Account debit"),
+          allow_negative: true,
+          posted_at: valueDate,
+        }),
+      },
     });
     setAdjusting(false);
     const result = data as { error?: string; email?: { ok?: boolean; error?: string } } | null;
-    if (error || result?.error) return toast.error(result?.error ?? "Failed");
+    if (error || result?.error) return toast.error(result?.error ?? error?.message ?? "Failed");
     if (result?.email?.ok === false) toast.warning(`Transaction posted, but email failed: ${result.email.error ?? "Resend rejected the email"}`);
     toast.success(sign > 0 ? "Account credited" : "Account debited"); setAdjustAmount(""); setAdjustNote("");
     loadAccounts(open);
