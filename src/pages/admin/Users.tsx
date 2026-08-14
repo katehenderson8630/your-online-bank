@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ export default function AdminUsers() {
   const [adjustAcc, setAdjustAcc] = useState("");
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
+  const postingRef = useRef(false);
   const [useNow, setUseNow] = useState(true);
   const [postedAt, setPostedAt] = useState(localNow());
 
