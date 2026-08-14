@@ -9,20 +9,9 @@ const corsHeaders = {
 const CANONICAL_APP_ORIGIN = "https://lyncrestdigital.online";
 const RESET_PATH = "/reset-password";
 
-// Build the page the user lands on. We keep the caller's origin when it is a valid
-// http(s) URL (preview/localhost included) so the link never points at a dead host.
-function resetPageUrl(raw?: string) {
-  try {
-    const parsed = new URL(raw ?? "", CANONICAL_APP_ORIGIN);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("bad protocol");
-    parsed.hostname = parsed.hostname.toLowerCase();
-    parsed.pathname = RESET_PATH;
-    parsed.search = "";
-    parsed.hash = "";
-    return parsed.toString();
-  } catch {
-    return `${CANONICAL_APP_ORIGIN}${RESET_PATH}`;
-  }
+// Always send users to the live custom domain, never to a preview/lovable host.
+function resetPageUrl(_raw?: string) {
+  return `${CANONICAL_APP_ORIGIN}${RESET_PATH}`;
 }
 
 

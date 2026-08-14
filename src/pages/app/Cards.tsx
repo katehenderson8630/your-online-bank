@@ -4,12 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CreditCard, Snowflake, Sun } from "lucide-react";
 import { sendEmail } from "@/lib/email";
-import { fmtAccount, fmtMoney } from "@/lib/format";
 
 type Account = { id: string; account_number: string; account_type: string };
 type CardRow = { id: string; card_number: string; cardholder_name: string; expiry_month: number; expiry_year: number; cvv: string; is_frozen: boolean; account_id: string };
@@ -22,7 +19,6 @@ export default function Cards() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [cards, setCards] = useState<CardRow[]>([]);
   const [requests, setRequests] = useState<Req[]>([]);
-  const [account, setAccount] = useState("");
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
@@ -34,24 +30,31 @@ export default function Cards() {
     setAccounts((a as Account[]) ?? []);
     setCards((c as CardRow[]) ?? []);
     setRequests((r as Req[]) ?? []);
-    if (a && a[0] && !account) setAccount(a[0].id);
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   const requestCard = async () => {
-    if (!user) return;
+    if (!user || busy) return;
     // Auto-link to the user's checking account (fallback to first available).
     const linked = accounts.find((a) => a.account_type === "checking") ?? accounts[0];
     if (!linked) return toast.error("Your accounts aren't ready yet. Please complete KYC first.");
+    if (requests.some((r) => r.status === "pending")) return toast.error("You already have a pending card request.");
     setBusy(true);
     const { error } = await supabase.from("card_requests").insert({
       user_id: user.id, account_id: linked.id, amount: FEE, status: "pending",
     });
+    if (error) { setBusy(false); return toast.error(error.message); }
+    // Email is best-effort: never block or fail the request because of it.
+    if (profile?.email) {
+      try {
+        await sendEmail("card-requested", profile.email, `cardreq-${user.id}-${Date.now()}`, { name: profile.full_name, amount: FEE });
+      } catch (e) {
+        console.error("card request email failed", e);
+      }
+    }
+    await load();
     setBusy(false);
-    if (error) return toast.error(error.message);
-    sendEmail("card-requested", profile!.email, `cardreq-${Date.now()}`, { name: profile!.full_name, amount: FEE });
     toast.success("Card request submitted. Awaiting admin approval.");
-    load();
   };
 
   const toggleFreeze = async (c: CardRow) => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ export default function AdminUsers() {
   const [adjustAcc, setAdjustAcc] = useState("");
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
+  const postingRef = useRef(false);
   const [useNow, setUseNow] = useState(true);
   const [postedAt, setPostedAt] = useState(localNow());
 
@@ -105,6 +106,7 @@ export default function AdminUsers() {
   const creditDebit = async (sign: 1 | -1) => {
     if (!open) return toast.error("Open a user account first");
     if (!adjustAcc) return toast.error("No account is available for this user");
+    if (postingRef.current) return; // guard against double taps posting twice
     const amt = parseFloat(adjustAmount);
     if (!amt || amt <= 0) return toast.error("Enter a positive amount");
     let valueDate: string | null = null;
@@ -114,6 +116,7 @@ export default function AdminUsers() {
       valueDate = d.toISOString();
     }
     const signed = sign * Math.abs(amt);
+    postingRef.current = true;
     setAdjusting(true);
     const { error, data } = await supabase.functions.invoke("admin-action", {
       body: {
@@ -129,6 +132,7 @@ export default function AdminUsers() {
       },
     });
     setAdjusting(false);
+    postingRef.current = false;
     const result = data as { error?: string; email?: { ok?: boolean; error?: string } } | null;
     if (error || result?.error) return toast.error(result?.error ?? error?.message ?? "Failed");
     if (result?.email?.ok === false) toast.warning(`Transaction posted, but email failed: ${result.email.error ?? "Resend rejected the email"}`);
