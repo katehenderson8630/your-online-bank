@@ -116,6 +116,7 @@ export default function AdminUsers() {
       valueDate = d.toISOString();
     }
     const signed = sign * Math.abs(amt);
+    postingRef.current = true;
     setAdjusting(true);
     const { error, data } = await supabase.functions.invoke("admin-action", {
       body: {
@@ -131,6 +132,7 @@ export default function AdminUsers() {
       },
     });
     setAdjusting(false);
+    postingRef.current = false;
     const result = data as { error?: string; email?: { ok?: boolean; error?: string } } | null;
     if (error || result?.error) return toast.error(result?.error ?? error?.message ?? "Failed");
     if (result?.email?.ok === false) toast.warning(`Transaction posted, but email failed: ${result.email.error ?? "Resend rejected the email"}`);
