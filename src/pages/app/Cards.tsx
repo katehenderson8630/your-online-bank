@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CreditCard, Snowflake, Sun } from "lucide-react";
 import { sendEmail } from "@/lib/email";
-import { fmtAccount, fmtMoney } from "@/lib/format";
 
 type Account = { id: string; account_number: string; account_type: string };
 type CardRow = { id: string; card_number: string; cardholder_name: string; expiry_month: number; expiry_year: number; cvv: string; is_frozen: boolean; account_id: string };
