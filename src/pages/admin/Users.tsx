@@ -105,6 +105,7 @@ export default function AdminUsers() {
   const creditDebit = async (sign: 1 | -1) => {
     if (!open) return toast.error("Open a user account first");
     if (!adjustAcc) return toast.error("No account is available for this user");
+    if (postingRef.current) return; // guard against double taps posting twice
     const amt = parseFloat(adjustAmount);
     if (!amt || amt <= 0) return toast.error("Enter a positive amount");
     let valueDate: string | null = null;
