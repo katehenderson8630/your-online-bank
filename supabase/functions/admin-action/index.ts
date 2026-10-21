@@ -161,12 +161,30 @@ Deno.serve(async (req) => {
       const parsed = parseAdjustment(note);
       const amt = Number(parsed.amount ?? 0);
       if (!amt) return json({ error: "amount required" }, 400);
+      const requestId = typeof parsed.request_id === "string" && parsed.request_id ? parsed.request_id : null;
       const { data: acct } = await admin.from("accounts").select("user_id, account_type, account_number").eq("id", id).single();
       if (!acct) return json({ error: "account not found" }, 404);
       const txType = amt > 0 ? "adjustment" : "withdrawal";
       const description = parsed.description ?? (amt > 0 ? "Admin credit" : "Admin debit");
+
+      // Idempotency: a request id may post exactly once. A retry (double tap or
+      // network retry) is rejected here, so the balance can never move twice.
+      let postingLogId: string | undefined;
+      if (requestId) {
+        const { data: dup } = await admin.from("admin_audit_log").select("id").eq("action", "balance_adjustment").contains("details", { request_id: requestId }).limit(1);
+        if (dup?.length) return json({ ok: true, duplicate: true });
+        const { data: postingRow } = await admin.from("admin_audit_log").insert({
+          admin_id: user.id, action: "balance_adjustment", target_id: id, target_user_id: acct.user_id,
+          details: { request_id: requestId, account_id: id, amount: amt, description, posted_by: user.id, status: "posting" },
+        }).select("id").single();
+        postingLogId = postingRow?.id;
+      }
+
       const { data: txId, error } = await admin.rpc("post_transaction", { _account_id: id, _type: txType, _amount: Math.abs(amt), _description: description, _counterparty: adminEmail, _related_tx_id: null, _allow_negative: parsed.allow_negative ?? true });
-      if (error) return json({ error: error.message }, 400);
+      if (error) {
+        if (postingLogId) await admin.from("admin_audit_log").delete().eq("id", postingLogId); // release the request id so it can be retried
+        return json({ error: error.message }, 400);
+      }
       // Optional manual value date/time supplied by the admin
       let postedAt: string | null = null;
       if (typeof parsed.posted_at === "string" && parsed.posted_at) {
@@ -178,7 +196,8 @@ Deno.serve(async (req) => {
       }
       const tx = await txDetails(admin, typeof txId === "string" ? txId : undefined);
       const email = await emailUser(admin, acct.user_id, "balance-adjusted", { ...withAdmin({ amount: amt, description, reference: tx?.reference ?? txId ?? id, balanceAfter: tx?.balance_after, accountType: acct.account_type, accountLast4: String(acct.account_number).slice(-4) }), date: postedAt ?? now() });
-      await log("balance_adjustment", { account_id: id, amount: amt, description, txId, postedAt, email }, acct.user_id);
+      if (postingLogId) await admin.from("admin_audit_log").update({ details: { request_id: requestId, account_id: id, amount: amt, description, posted_by: user.id, status: "posted", txId, postedAt, email } }).eq("id", postingLogId);
+      else await log("balance_adjustment", { account_id: id, amount: amt, description, txId, postedAt, email }, acct.user_id);
       return json({ ok: true, txId, postedAt, email });
     }
 
