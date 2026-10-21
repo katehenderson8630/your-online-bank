@@ -214,6 +214,11 @@ function build(name: string, d: Record<string, unknown>): Tpl {
   }
 }
 
+function toText(t: Tpl) {
+  // Plain-text alternative improves deliverability (spam filters penalise html-only mail)
+  return `${t.subject}\n\n${t.intro}\n${t.body.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim()}\n\nLyncrest Digital Bank — ${SUPPORT_EMAIL}`;
+}
+
 function wrap(t: Tpl) {
   return `<!doctype html><html><body style="margin:0;background:#f5f7fb;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fb;padding:24px 0">
@@ -248,7 +253,14 @@ Deno.serve(async (req) => {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers,
-      body: JSON.stringify({ from: FROM, to: [recipientEmail], subject: tpl.subject, html }),
+      body: JSON.stringify({
+        from: FROM,
+        to: [recipientEmail],
+        subject: tpl.subject,
+        html,
+        text: toText(tpl),
+        headers: { "X-Entity-Ref-ID": idempotencyKey ?? crypto.randomUUID() },
+      }),
     });
     const raw = await r.text();
     let data: Record<string, unknown> = {};
