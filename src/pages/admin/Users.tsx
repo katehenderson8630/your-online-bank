@@ -116,6 +116,7 @@ export default function AdminUsers() {
       valueDate = d.toISOString();
     }
     const signed = sign * Math.abs(amt);
+    const requestId = crypto.randomUUID(); // lets the backend reject any retry of this exact posting
     postingRef.current = true;
     setAdjusting(true);
     const { error, data } = await supabase.functions.invoke("admin-action", {
@@ -128,6 +129,7 @@ export default function AdminUsers() {
           description: adjustNote || (sign > 0 ? "Account credit" : "Account debit"),
           allow_negative: true,
           posted_at: valueDate,
+          request_id: requestId,
         }),
       },
     });
